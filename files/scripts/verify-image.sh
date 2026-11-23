@@ -47,6 +47,17 @@ readonly REQUIRED_PATHS=(
     /usr/lib/systemd/user/shatteredvales-update-reminder.timer
     /etc/dconf/db/local.d/locks/10-shatteredvales-screenlock
     /etc/profile.d/shatteredvales-prompt.sh
+    /etc/profile.d/shatteredvales-source.sh
+    /etc/xdg/mimeapps.list
+    /etc/docker/daemon.json
+    /usr/bin/sv-branch
+    /usr/bin/sv-rebase
+    /usr/bin/sv-lfs-init
+    /usr/bin/sv-clean
+    /usr/libexec/shatteredvales/git-common.sh
+    /usr/share/shatteredvales/artcraft-apps.list
+    /usr/share/shatteredvales/templates/repo/gitattributes-game
+    /usr/share/shatteredvales/templates/new-document/README.md
     /etc/firefox/policies/policies.json
     /etc/chromium/policies/managed/shatteredvales-bookmarks.json
     # Desktop files referenced by favorite-apps in the dconf defaults.

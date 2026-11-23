@@ -149,6 +149,82 @@ step_github_reminder() {
     fi
 }
 
+# install_craft_app
+#   Installs one Craft app as a user Flatpak bundle from its latest GitHub
+#   release, after checking the bundle against the release's SHA256SUMS.txt.
+#   Uses github.com download URLs rather than the API, which allows only 60
+#   unauthenticated requests an hour per IP and would run out when a whole
+#   office logs in at once.
+#   Arguments: $1 app id, $2 GitHub owner/repo, $3 work directory
+#   Returns: 0 on success, 1 on download, checksum or install failure
+install_craft_app() {
+    local id="$1" repo="$2" work="$3" base sums line file sum
+    base="https://github.com/${repo}/releases/latest/download"
+    sums="$(curl -fsSL --retry 2 "${base}/SHA256SUMS.txt")" || return 1
+    line="$(grep -E "  ${id}-[0-9][^ ]*-linux-x86_64\.flatpak$" <<<"${sums}" | head -n1)"
+    [[ -n "${line}" ]] || { echo "No x86_64 Flatpak in the latest ${repo} release"; return 1; }
+    file="${line##* }"
+    sum="${line%% *}"
+    curl -fsSL --retry 2 -o "${work}/${file}" "${base}/${file}" || return 1
+    echo "${sum}  ${work}/${file}" | sha256sum -c --quiet - || return 1
+    # The same command ArtCraft Launcher runs, so it recognises and updates
+    # these installs as its own.
+    flatpak install --user -y --noninteractive --reinstall --bundle "${work}/${file}" || return 1
+    rm -f "${work:?}/${file}"
+}
+
+# step_artcraft_apps
+#   Installs the studio's default Craft apps (listed in
+#   /usr/share/shatteredvales/artcraft-apps.list) for this user. Apps the
+#   user already has are skipped; failures are retried at the next login.
+#   Returns: 0 if every app is installed, 1 otherwise
+step_artcraft_apps() {
+    local list=/usr/share/shatteredvales/artcraft-apps.list id flatpak_id repo work failed=0
+    wait_for_network || return 1
+    # Bundles pull their runtime from the user's Flathub remote.
+    flatpak remote-add --user --if-not-exists flathub \
+        https://dl.flathub.org/repo/flathub.flatpakrepo || return 1
+    notify "Installing ArtCraft apps" "About 1 GB in the background; ArtCraft Launcher keeps them updated afterwards."
+    work="$(mktemp -d)"
+    while read -r id flatpak_id repo; do
+        [[ -z "${id}" || "${id}" == \#* ]] && continue
+        if flatpak info --user "${flatpak_id}" >/dev/null 2>&1 \
+            || flatpak info --system "${flatpak_id}" >/dev/null 2>&1; then
+            continue
+        fi
+        echo "Installing ${id} from ${repo}"
+        install_craft_app "${id}" "${repo}" "${work}" || { echo "Failed: ${id}"; failed=1; }
+    done < "${list}"
+    rm -rf "${work}"
+    (( failed == 0 )) || return 1
+    notify "ArtCraft apps installed" "Open ArtCraft Launcher to see the suite and check for updates."
+}
+
+# step_source_bookmark
+#   Adds ~/Source to the Files sidebar.
+#   Returns: 0 always
+step_source_bookmark() {
+    local bookmarks="${XDG_CONFIG_HOME:-${HOME}/.config}/gtk-3.0/bookmarks"
+    mkdir -p "$(dirname "${bookmarks}")" "${HOME}/Source"
+    grep -q "file://${HOME}/Source" "${bookmarks}" 2>/dev/null \
+        || echo "file://${HOME}/Source Source" >> "${bookmarks}"
+}
+
+# step_file_templates
+#   Copies the studio's file templates into the user's Templates folder so
+#   they appear under right-click > New Document in Files. Existing files
+#   with the same name are kept.
+#   Returns: cp exit status
+step_file_templates() {
+    local templates
+    templates="$(xdg-user-dir TEMPLATES 2>/dev/null)"
+    # xdg-user-dir falls back to $HOME when the folder is not configured;
+    # never drop templates loose in the home folder.
+    [[ -n "${templates}" && "${templates}" != "${HOME}" ]] || templates="${HOME}/Templates"
+    mkdir -p "${templates}"
+    cp -n /usr/share/shatteredvales/templates/new-document/* "${templates}/"
+}
+
 # main
 #   Runs every pending per-user setup step and logs to the state directory.
 #   Arguments: none
@@ -165,6 +241,10 @@ main() {
     run_step jetbrains-toolbox-v1 step_jetbrains_toolbox || failed=1
     run_step source-dir-v1 step_source_dir || failed=1
     run_step github-reminder-v1 step_github_reminder || failed=1
+    run_step source-bookmark-v1 step_source_bookmark || failed=1
+    run_step file-templates-v1 step_file_templates || failed=1
+    # Last, because it downloads about 1 GB.
+    run_step artcraft-apps-v1 step_artcraft_apps || failed=1
 
     if (( failed )); then
         notify "Workstation setup incomplete" "See ${LOG_FILE}. It will retry at next login."

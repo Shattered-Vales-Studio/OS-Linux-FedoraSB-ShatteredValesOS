@@ -76,12 +76,25 @@ separate private repo because it holds secrets).
     MinGW Windows cross-compilers, flatpak-builder, rpm-build
   - Virtual machines: virt-manager with QEMU/KVM (users are added to the
     `libvirt` group at boot)
-- **Flatpaks on first boot:** Steam, Bitwarden, OBS, Remmina (RDP), Extension
+- **Flatpaks on first boot:** GNOME's core apps (image, PDF, video and audio
+  viewers, Text Editor, Calculator, Calendar, Archive Manager, Disk Usage and
+  more), Steam, Bitwarden, OBS, Remmina (RDP), Extension
   Manager, Flatseal, Blender, Krita, GIMP, Inkscape, Audacity, Godot (.NET),
   Android Studio, WiVRn (PC VR streaming to Quest), Postman, DBeaver,
   Qt Creator, Podman Desktop, BoxBuddy, Tiled, F3D, Flameshot, Parsec, Slack,
   Discord. The first boot downloads several GB, so allow time on a fresh
   install.
+- **ArtCraft at first login:** the 17 official Craft apps (PhotoCraft,
+  VectorCraft, FilmCraft, WordCraft, GridCraft, DeckCraft, CADCraft and the
+  rest, about 1.1 GB) install for each user as Flatpak bundles, checksum
+  verified, exactly as ArtCraft Launcher installs them; the launcher then
+  keeps them updated. Community apps (SolidCraft, MailCraft) are one click
+  away in the launcher.
+- **Default apps:** Craft apps open work files (PSD/KRA/EXR, SVG/AI, raw
+  photos, PDF, Word/Excel/PowerPoint, DXF/DWG and more); GNOME's viewers open
+  plain images, video and audio, with the Craft app offered second; 3D
+  models open in F3D, `.blend` in Blender, code in VS Code, and email links
+  in Thunderbird. Users can change any of these in Settings.
 - **Per user at first login:** Claude Code, Rust (rustup), JetBrains Toolbox
   (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global
   prefix in `~/.local` so `npm install -g` works on the read-only system.
@@ -102,6 +115,11 @@ separate private repo because it holds secrets).
   this). Desktops never suspend on mains power, so overnight builds and
   remote access keep working; laptops still sleep on battery. A
   notification asks people to restart when an update has waited 3+ days.
+- **Files:** `~/Source` in the sidebar, and right-click > *New Document*
+  templates (README, Markdown, text, Unity C#, Godot, shell and Python
+  scripts that follow the studio documentation standard). In a terminal,
+  `cd <repo>` reaches any repository in `~/Source` from anywhere.
+- **Docker:** container logs rotate (3 files of 10 MB) instead of filling the disk.
 - **Terminal:** a Git-aware bash prompt with the branch in brand gold. Set
   `SV_PROMPT=0` to keep your own.
 - **Browsers:** Firefox and Chromium show a managed *Shattered Vales*
@@ -120,6 +138,10 @@ separate private repo because it holds secrets).
 | `sv-first-login` | Re-runs per-user setup (e.g. for SSH-only accounts) |
 | `sv-doctor` | Health check for support; `sv-doctor --copy` copies the report to paste into a message |
 | `sv-update` | Shows the waiting OS update and what it changes; `now` updates immediately, `rollback` goes back |
+| `sv-branch <issue>` | Creates `feature/issue-<n>-<title>` from the latest `Dev` |
+| `sv-rebase` | The guide's safe rebase onto `Dev`: backup, fetch, rebase, push with lease; `--continue` after conflicts |
+| `sv-lfs-init unity\|godot\|blender` | Adds the LFS guide's `.gitattributes` (with lockable art) and engine `.gitignore` to a repo |
+| `sv-clean` | Frees disk space from caches only (Docker, npm, NuGet, uv, Go, thumbnails, old logs), asking first |
 | `sv-new-project [name]` | New project from the Claude template, straight into the design interview |
 | `sv-github setup` | Connects the account to GitHub (same as *GitHub Setup*) |
 | `sv-github list` | Shows GitHub profiles; `sv-github test [alias]` checks one |

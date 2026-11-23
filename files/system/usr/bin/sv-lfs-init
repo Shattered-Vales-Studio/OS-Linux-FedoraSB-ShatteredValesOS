@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+#
+# sv-lfs-init
+#
+# Purpose:
+#   Makes an existing repository ready for game assets in one step, using
+#   the studio guide "Managing Game Assets with Git LFS":
+#     - .gitattributes: the guide's LFS baseline, with source art (.psd,
+#       .kra, .blend, ...) marked lockable
+#     - .gitignore: GitHub's maintained Unity or Godot template (the guide's
+#       recommended starting point), or the guide's minimum Unity list when
+#       offline
+#   Existing files are extended, never replaced: only rules that are not
+#   already present are appended.
+#
+# Usage:
+#   sv-lfs-init unity|godot|blender|art   (inside the repository)
+#     unity    LFS baseline + Unity .gitignore
+#     godot    LFS baseline + Godot .gitignore
+#     blender  LFS baseline only (Blender and art-only repositories)
+#     art      same as blender
+#
+# Exit codes:
+#   0 on success, 1 on failure, 64 on bad usage.
+
+set -euo pipefail
+
+# shellcheck source=files/system/usr/libexec/shatteredvales/git-common.sh
+source /usr/libexec/shatteredvales/git-common.sh
+
+readonly TEMPLATES=/usr/share/shatteredvales/templates/repo
+readonly GITIGNORE_URL=https://raw.githubusercontent.com/github/gitignore/main
+
+# merge_lines
+#   Appends each line of a template that the target file doesn't already
+#   contain, under a heading, so re-running is harmless and nothing the
+#   repository already has is removed or reordered.
+#   Arguments: $1 target file, $2 template text, $3 heading comment
+#   Output: the number of lines added
+#   Returns: 0 always
+merge_lines() {
+    local target="$1" template="$2" heading="$3" line added=0 block=""
+    touch "${target}"
+    while IFS= read -r line; do
+        [[ -z "${line}" || "${line}" == \#* ]] && continue
+        grep -qxF -- "${line}" "${target}" && continue
+        block+="${line}"$'\n'
+        added=$((added + 1))
+    done <<<"${template}"
+    if (( added )); then
+        [[ -s "${target}" && -n "$(tail -c1 "${target}")" ]] && echo >> "${target}"
+        printf '\n# %s\n%s' "${heading}" "${block}" >> "${target}"
+    fi
+    echo "${added}"
+}
+
+# gitignore_template
+#   Prints the .gitignore template for an engine, downloading GitHub's
+#   maintained version and falling back to the guide's minimum for Unity.
+#   Arguments: $1 engine (unity or godot)
+#   Output: template text
+#   Returns: 1 if nothing is available for the engine
+gitignore_template() {
+    local name
+    case "$1" in
+        unity) name=Unity ;;
+        godot) name=Godot ;;
+        *) return 1 ;;
+    esac
+    if curl -fsSL --max-time 15 "${GITIGNORE_URL}/${name}.gitignore"; then
+        return 0
+    fi
+    echo "Could not download ${name}.gitignore; using the guide's minimum list." >&2
+    [[ "$1" == unity ]] && cat "${TEMPLATES}/gitignore-unity-minimum"
+}
+
+# main
+#   Writes the LFS attributes and engine ignores, then stages them.
+#   Arguments: $1 project type
+#   Returns: 0 on success, 64 on bad usage
+main() {
+    local kind="${1:-}" added ignore
+    case "${kind}" in
+        unity|godot|blender|art) ;;
+        *) echo "Usage: sv-lfs-init unity|godot|blender|art" >&2; exit 64 ;;
+    esac
+    require_repo
+    git lfs version >/dev/null 2>&1 || die "Git LFS is not available."
+
+    say "Git LFS rules (.gitattributes)"
+    added="$(merge_lines .gitattributes "$(cat "${TEMPLATES}/gitattributes-game")" \
+        "Git LFS baseline: https://shatteredvales.studio/guide/git/managinggameassetswithgitlfs.html")"
+    echo "${added} rule(s) added."
+
+    if [[ "${kind}" == unity || "${kind}" == godot ]]; then
+        say "Ignores for ${kind^} (.gitignore)"
+        if ignore="$(gitignore_template "${kind}")"; then
+            added="$(merge_lines .gitignore "${ignore}" "${kind^} ignores (github/gitignore)")"
+            echo "${added} rule(s) added."
+        fi
+    fi
+
+    git add .gitattributes
+    [[ -f .gitignore ]] && git add .gitignore
+    say "Staged. Next steps"
+    echo "  git commit -m \"build(lfs): track game assets with Git LFS\""
+    if [[ -n "$(git ls-files | head -n1)" ]]; then
+        echo "Files already committed are not in LFS yet. To move them (one-off):"
+        echo "  git add --renormalize . && git commit -m \"build(lfs): move tracked binaries into LFS\""
+    fi
+    if [[ "${kind}" == unity ]]; then
+        echo "In Unity: Edit > Project Settings > Editor: Version Control 'Visible Meta Files',"
+        echo "Asset Serialization 'Force Text' (guide step 3). Lock art before editing: git lfs lock <file>"
+    fi
+}
+
+main "$@"

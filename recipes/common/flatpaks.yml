@@ -8,6 +8,26 @@ modules:
       - notify: true
         scope: system
         install:
+          # Core GNOME apps. Fedora's own installer adds these to Silverblue,
+          # but this image is installed from a container, so without them
+          # there would be no image, PDF or video viewer, text editor or
+          # archive manager. Fedora's default file associations expect them.
+          - org.gnome.Loupe
+          - org.gnome.Papers
+          - org.gnome.Showtime
+          - org.gnome.Decibels
+          - org.gnome.TextEditor
+          - org.gnome.Calculator
+          - org.gnome.Calendar
+          - org.gnome.Characters
+          - org.gnome.clocks
+          - org.gnome.Snapshot
+          - org.gnome.FileRoller
+          - org.gnome.baobab
+          - org.gnome.font-viewer
+          - org.gnome.Logs
+          - org.gnome.SimpleScan
+          # Studio apps
           - com.valvesoftware.Steam
           - com.bitwarden.desktop
           - com.obsproject.Studio

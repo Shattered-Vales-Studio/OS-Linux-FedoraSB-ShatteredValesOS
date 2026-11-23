@@ -1,0 +1,14 @@
+# Minimum Unity ignores from the studio LFS guide, used when GitHub's
+# full Unity.gitignore cannot be downloaded.
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+*.csproj
+*.sln
+*.pidb
+*.userprefs

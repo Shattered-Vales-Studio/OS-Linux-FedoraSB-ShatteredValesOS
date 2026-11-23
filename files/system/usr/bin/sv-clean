@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+#
+# sv-clean
+#
+# Purpose:
+#   Frees disk space safely. Only caches and unused data that tools rebuild
+#   or re-download on demand are touched; projects, documents, Docker
+#   volumes and installed apps in use are never removed. Shows how much
+#   each item would free and asks before cleaning it.
+#
+# Usage:
+#   sv-clean          Ask about each item.
+#   sv-clean --yes    Clean every item without asking.
+#
+# Exit codes:
+#   0 on success, 64 on bad usage. A single item that fails to clean is
+#   reported and skipped.
+
+set -uo pipefail
+
+ASSUME_YES=0
+FREED_ITEMS=0
+
+# human_size
+#   Prints the disk usage of paths in human-readable form.
+#   Arguments: paths (missing ones are ignored)
+#   Output: size such as "1.2G", or "0" when nothing exists
+#   Returns: 0 always
+human_size() {
+    local -a existing=()
+    local p
+    for p in "$@"; do [[ -e "${p}" ]] && existing+=("${p}"); done
+    if (( ${#existing[@]} == 0 )); then
+        echo 0
+        return 0
+    fi
+    du -sch "${existing[@]}" 2>/dev/null | tail -n1 | cut -f1
+}
+
+# offer
+#   Describes one item and cleans it if the user agrees.
+#   Arguments: $1 title, $2 size text, $3 what is removed, then the cleaning
+#              command and its arguments
+#   Returns: 0 always
+offer() {
+    local title="$1" size="$2" what="$3" reply
+    shift 3
+    [[ "${size}" == 0 || "${size}" == 0B ]] && return 0
+    printf '\n\033[1m%s\033[0m  (%s)\n  %s\n' "${title}" "${size}" "${what}"
+    if (( ! ASSUME_YES )); then
+        read -r -p "  Clean it? [y/N] " reply
+        [[ "${reply}" =~ ^[Yy] ]] || return 0
+    fi
+    if "$@"; then
+        FREED_ITEMS=$((FREED_ITEMS + 1))
+    else
+        echo "  Could not clean ${title}; skipped."
+    fi
+}
+
+# clean_dirs
+#   Empties cache directories, keeping the directories themselves.
+#   Arguments: directories
+#   Returns: 0 always
+clean_dirs() {
+    local d
+    for d in "$@"; do
+        [[ -d "${d}" ]] && find "${d}" -mindepth 1 -delete 2>/dev/null
+    done
+    return 0
+}
+
+# docker_reclaimable
+#   Prints how much Docker could reclaim from build cache, stopped
+#   containers and dangling images.
+#   Arguments: none
+#   Returns: 0 always
+docker_reclaimable() {
+    docker system df --format '{{.Type}} {{.Reclaimable}}' 2>/dev/null \
+        | grep -vi volume | awk '{print $2}' | paste -sd' ' - || echo 0
+}
+
+# main
+#   Walks through every cleanable item.
+#   Arguments: $1 optional --yes
+#   Returns: 0 always, 64 on bad usage
+main() {
+    case "${1:-}" in
+        "") ;;
+        --yes|-y) ASSUME_YES=1 ;;
+        *) echo "Usage: sv-clean [--yes]" >&2; exit 64 ;;
+    esac
+
+    echo "Disk use before: $(df -h --output=used,avail,pcent "${HOME}" | tail -n1 | awk '{print $1" used, "$2" free ("$3")"}')"
+    local cache="${XDG_CACHE_HOME:-${HOME}/.cache}"
+
+    if command -v docker >/dev/null && docker info >/dev/null 2>&1; then
+        offer "Docker" "$(docker_reclaimable)" \
+            "Stopped containers, unused networks, dangling images and build cache. Volumes are kept." \
+            docker system prune -f
+    fi
+
+    offer "Unused app runtimes" "unused" \
+        "Flatpak runtimes no installed app needs any more." \
+        bash -c 'flatpak uninstall --user --unused -y --noninteractive; flatpak uninstall --system --unused -y --noninteractive'
+
+    offer "npm cache" "$(human_size "${HOME}/.npm/_cacache")" \
+        "Downloaded npm packages; re-downloaded when needed." \
+        npm cache clean --force
+
+    if command -v pnpm >/dev/null; then
+        offer "pnpm store" "$(human_size "${HOME}/.local/share/pnpm/store")" \
+            "Packages no project references any more." \
+            pnpm store prune
+    fi
+
+    offer "NuGet caches" "$(human_size "${HOME}/.nuget/packages" "${HOME}/.local/share/NuGet")" \
+        "Downloaded .NET packages; restored on the next build." \
+        dotnet nuget locals all --clear
+
+    offer "Python caches" "$(human_size "${cache}/uv" "${cache}/pip")" \
+        "Downloaded Python packages (uv and pip)." \
+        clean_dirs "${cache}/uv" "${cache}/pip"
+
+    if command -v go >/dev/null; then
+        offer "Go build cache" "$(human_size "$(go env GOCACHE 2>/dev/null)")" \
+            "Compiled Go packages; rebuilt on the next build." \
+            go clean -cache
+    fi
+
+    offer "Thumbnails" "$(human_size "${cache}/thumbnails")" \
+        "File previews; regenerated when folders are opened." \
+        clean_dirs "${cache}/thumbnails"
+
+    offer "System logs older than 2 weeks" "$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+[KMGT]' | head -n1 || echo 0)" \
+        "Old journal entries (asks for your password)." \
+        sudo journalctl --vacuum-time=2weeks
+
+    echo
+    echo "Cleaned ${FREED_ITEMS} item(s)."
+    echo "Disk use after:  $(df -h --output=used,avail,pcent "${HOME}" | tail -n1 | awk '{print $1" used, "$2" free ("$3")"}')"
+    echo "Biggest folders in your home: Disk Usage Analyzer (baobab), or: du -sh ~/* | sort -h | tail"
+    echo "Unity regenerates a project's Library folder; delete it in projects you aren't working on."
+}
+
+main "$@"
