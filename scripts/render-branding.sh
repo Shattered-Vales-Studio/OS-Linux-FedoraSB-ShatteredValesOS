@@ -228,6 +228,34 @@ SVG
             -o "${out}/usr/share/icons/hicolor/${size}x${size}/apps/shatteredvales-logo.png"
     done
 
+    # Settings > About logo. Fedora builds GNOME Settings with
+    # -Ddistributor_logo pointing at these two fedora-logos files (light and
+    # dark mode), so it ignores os-release LOGO; replacing the files is the
+    # only way to brand the page. GtkPicture shows them at their pixel size
+    # inside a 192px clamp it may exceed, so they are rendered at display
+    # size: the mark, the OS name in foil and "Based on Fedora" in the
+    # brand text colour for each mode (AAA on libadwaita's backgrounds).
+    # Fedora's name is plain text; its logo artwork is not reused.
+    magick -background none -fill white -font "${BRAND_DISPLAY_FONT_FILE}" \
+        -pointsize 64 -kerning 6.4 label:"${BRAND_OS_NAME^^}" -trim +repage "${tmp}/about-name-white.png"
+    foilify "${tmp}/about-name-white.png" "${tmp}/about-name.png"
+    magick "${tmp}/logo-256.png" -trim +repage -resize x200 "${tmp}/logo-about.png"
+    local mode colour file
+    for mode in light dark; do
+        if [[ "${mode}" == light ]]; then
+            colour="${BRAND_BG}" file=fedora_logo_med.png
+        else
+            colour="${BRAND_TEXT}" file=fedora_whitelogo_med.png
+        fi
+        magick -background none -fill "${colour}" -font "${BRAND_FONT_BOLD_FILE}" \
+            -pointsize 34 -kerning 4 label:"BASED ON FEDORA" -trim +repage "${tmp}/about-sub-${mode}.png"
+        magick "${tmp}/about-name.png" \( -size 1x22 xc:none \) "${tmp}/about-sub-${mode}.png" \
+            -background none -gravity west -append "${tmp}/about-text-${mode}.png"
+        magick "${tmp}/logo-about.png" \( -size 36x1 xc:none \) "${tmp}/about-text-${mode}.png" \
+            -background none -gravity center +append \
+            -resize 300x88 -gravity center -extent 320x100 +repage "${out}/usr/share/pixmaps/${file}"
+    done
+
     # Studio launcher icons: a dark tile in the site's surface colours with
     # a gold-foil line glyph, so each studio tool is recognisable in the app
     # grid while matching the logo. Glyphs are generic shapes (a document,
