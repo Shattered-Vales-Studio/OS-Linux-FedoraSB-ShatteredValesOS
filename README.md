@@ -58,7 +58,7 @@ separate private repo because it holds secrets).
 - **Flatpaks on first boot:** Steam, Bitwarden, OBS, Remmina (RDP), Extension
   Manager, Flatseal, Blender, Krita, GIMP, Inkscape, Audacity, Godot (.NET),
   Android Studio, WiVRn (PC VR streaming to Quest), Postman, DBeaver,
-  Qt Creator. The first boot downloads several GB, so allow time on a fresh
+  Qt Creator, Podman Desktop. The first boot downloads several GB, so allow time on a fresh
   install.
 - **Per user at first login:** Claude Code, Rust (rustup), JetBrains Toolbox
   (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global

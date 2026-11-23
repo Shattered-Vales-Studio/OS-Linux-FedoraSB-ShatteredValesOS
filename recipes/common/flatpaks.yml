@@ -30,3 +30,5 @@ modules:
           - com.getpostman.Postman
           - io.dbeaver.DBeaverCommunity
           - io.qt.QtCreator
+          # GUI for Podman (in the base) and the Docker Engine socket.
+          - io.podman_desktop.PodmanDesktop
