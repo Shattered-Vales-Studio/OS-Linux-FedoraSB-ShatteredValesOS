@@ -83,6 +83,8 @@ readonly REQUIRED_PATHS=(
     /usr/share/shatteredvales/lockscreen-header.png
     /usr/share/shatteredvales/avatar.png
     /etc/dconf/db/local.d/20-shatteredvales-app-folders
+    /usr/share/icons/hicolor/scalable/apps/shatteredvales-new-project.svg
+    /usr/share/icons/hicolor/scalable/apps/shatteredvales-github-setup.svg
     /etc/dconf/db/local
     /etc/dconf/db/gdm
 )

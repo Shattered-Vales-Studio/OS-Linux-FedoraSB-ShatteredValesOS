@@ -84,6 +84,32 @@ render_inside() {
         grep -q 'url(#foil)' "$1" || { echo "logo.svg fill is not ${BRAND_ACCENT}" >&2; return 1; }
     }
 
+    # tile_icon
+    #   Writes a scalable app icon: a rounded tile filled with the site's
+    #   page gradient and a thin gold edge, with a line glyph stroked in the
+    #   foil gradient, on a 128x128 canvas.
+    #   Arguments: $1 icon name, $2 SVG elements for the glyph (unstyled;
+    #              stroke and fill come from the enclosing group)
+    #   Returns: 0 on success
+    tile_icon() {
+        local offsets="" i n=${#stops[@]}
+        for (( i = 0; i < n; i++ )); do
+            offsets+="<stop offset=\"$(( i * 100 / (n - 1) ))%\" stop-color=\"${stops[i]}\"/>"
+        done
+        cat > "${out}/usr/share/icons/hicolor/scalable/apps/$1.svg" <<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="foil" gradientUnits="userSpaceOnUse" x1="24" y1="24" x2="104" y2="104">${offsets}</linearGradient>
+    <radialGradient id="page" cx="64" cy="64" r="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="${BRAND_BG_GLOW}"/><stop offset="100%" stop-color="${BRAND_BG}"/>
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#page)" stroke="${BRAND_ACCENT}" stroke-opacity="0.45" stroke-width="2"/>
+  <g fill="none" stroke="url(#foil)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">$2</g>
+</svg>
+SVG
+    }
+
     # foilify
     #   Replaces the colour of every opaque pixel in a PNG with the foil
     #   gradient, keeping its alpha. Used for rasterised text, which cannot
@@ -201,6 +227,15 @@ render_inside() {
         rsvg-convert -w "${size}" -h "${size}" -a "${tmp}/logo-foil.svg" \
             -o "${out}/usr/share/icons/hicolor/${size}x${size}/apps/shatteredvales-logo.png"
     done
+
+    # Studio launcher icons: a dark tile in the site's surface colours with
+    # a gold-foil line glyph, so each studio tool is recognisable in the app
+    # grid while matching the logo. Glyphs are generic shapes (a document,
+    # a Git branch), never third-party logos.
+    tile_icon "shatteredvales-new-project" \
+        '<path d="M44 30h26l18 18v48a4 4 0 0 1-4 4H44a4 4 0 0 1-4-4V34a4 4 0 0 1 4-4z"/><path d="M70 30v18h18"/><path d="M64 62v26M51 75h26"/>'
+    tile_icon "shatteredvales-github-setup" \
+        '<circle cx="46" cy="38" r="9"/><circle cx="46" cy="92" r="9"/><circle cx="84" cy="52" r="9"/><path d="M46 47v36"/><path d="M84 61c0 16-38 10-38 22"/>'
 
     cp branding/brand.env "${out}/usr/share/shatteredvales/brand.env"
     rm -rf "${tmp}"
