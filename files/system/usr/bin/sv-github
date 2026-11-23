@@ -8,7 +8,10 @@
 #     setup        "Your First Day" Step 5 and "Daily Git Terminal
 #                  Workflow" Step 1: Git identity, GitHub CLI sign-in, an
 #                  ed25519 SSH key uploaded with `gh ssh-key add`, and
-#                  ~/Source.
+#                  ~/Source. The same key also signs commits and tags, so
+#                  GitHub shows them as Verified.
+#     signing      Turns on commit signing for an account set up before
+#                  signing was part of setup.
 #     add-profile  "Managing Multiple GitHub SSH Keys": a named key, an SSH
 #                  host alias and the key added to the second account.
 #     use / clone  That guide's Step 4 and "Local Git Config" tip: point a
@@ -17,6 +20,7 @@
 #
 # Usage:
 #   sv-github setup [--wait]
+#   sv-github signing
 #   sv-github add-profile <alias>
 #   sv-github use <alias>                 (inside a repository)
 #   sv-github clone <alias> <owner/repo>  (clones into ~/Source)
@@ -41,6 +45,9 @@ readonly KNOWN_HOSTS="${SSH_DIR}/known_hosts"
 readonly PROFILE_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/shatteredvales/github-profiles"
 readonly SOURCE_DIR="${HOME}/Source"
 readonly DEFAULT_KEY="${SSH_DIR}/id_ed25519"
+readonly ALLOWED_SIGNERS="${XDG_CONFIG_HOME:-${HOME}/.config}/git/allowed_signers"
+# Scopes the CLI token needs: upload authentication keys and signing keys.
+readonly GH_SCOPES="admin:public_key,admin:ssh_signing_key"
 
 # say
 #   Prints a highlighted progress line.
@@ -171,17 +178,22 @@ generate_key() {
 
 # gh_login
 #   Signs the GitHub CLI in through the browser if needed, and makes sure
-#   the token can manage SSH keys.
+#   the token can manage SSH authentication and signing keys.
 #   Arguments: none
 #   Returns: gh's exit status
 gh_login() {
+    local status
     if ! gh auth status --hostname github.com >/dev/null 2>&1; then
         echo "A browser window opens. Sign in, enter the one-time code shown here,"
         echo "and approve the ${ORG} organization if asked."
         gh auth login --hostname github.com --git-protocol ssh --web \
-            --skip-ssh-key --scopes admin:public_key
-    elif ! gh auth status --hostname github.com 2>&1 | grep -q 'admin:public_key'; then
-        gh auth refresh --hostname github.com --scopes admin:public_key
+            --skip-ssh-key --scopes "${GH_SCOPES}"
+        return
+    fi
+    status="$(gh auth status --hostname github.com 2>&1)"
+    if ! grep -q 'admin:public_key' <<<"${status}" || ! grep -q 'admin:ssh_signing_key' <<<"${status}"; then
+        echo "GitHub needs one more permission so this key can sign commits; approve it in the browser."
+        gh auth refresh --hostname github.com --scopes "${GH_SCOPES}"
     fi
 }
 
@@ -195,21 +207,45 @@ active_login() {
 
 # upload_key
 #   Adds a public key to the GitHub account the CLI is signed in as.
-#   A key that is already on the account counts as success.
-#   Arguments: $1 public key path, $2 title shown on GitHub
+#   GitHub keeps authentication and signing keys in separate lists, so the
+#   same key is uploaded once for each use. A key that is already on the
+#   account counts as success.
+#   Arguments: $1 public key path, $2 title shown on GitHub,
+#              $3 key type: authentication (default) or signing
 #   Returns: 0 on success, 1 otherwise
 upload_key() {
-    local output
-    if output="$(gh ssh-key add "$1" --title "$2" 2>&1)"; then
-        echo "Key added to GitHub."
+    local output type="${3:-authentication}"
+    if output="$(gh ssh-key add "$1" --title "$2" --type "${type}" 2>&1)"; then
+        echo "Key added to GitHub as ${type} key."
         return 0
     fi
     if grep -qi 'already' <<<"${output}"; then
-        echo "That key is already on the account."
+        echo "That ${type} key is already on the account."
         return 0
     fi
     echo "${output}" >&2
     return 1
+}
+
+# enable_signing
+#   Signs every commit and tag with an SSH key and records the key as a
+#   trusted signer, so `git log --show-signature` verifies locally as well
+#   as on GitHub. Uses --global for the main account; profiles set the
+#   per-repository key in `use`.
+#   Arguments: $1 public key path, $2 email the key signs for
+#   Returns: 0 on success
+enable_signing() {
+    local pub="$1" email="$2"
+    git config --global gpg.format ssh
+    git config --global user.signingkey "${pub}"
+    git config --global commit.gpgsign true
+    git config --global tag.gpgsign true
+    mkdir -p "$(dirname "${ALLOWED_SIGNERS}")"
+    touch "${ALLOWED_SIGNERS}"
+    if ! grep -qF "$(cut -d' ' -f1,2 "${pub}")" "${ALLOWED_SIGNERS}"; then
+        printf '%s namespaces="git" %s\n' "${email}" "$(cut -d' ' -f1,2 "${pub}")" >> "${ALLOWED_SIGNERS}"
+    fi
+    git config --global gpg.ssh.allowedSignersFile "${ALLOWED_SIGNERS}"
 }
 
 # test_ssh
@@ -298,6 +334,14 @@ cmd_setup() {
     write_host_block github.com "${DEFAULT_KEY}"
     upload_key "${DEFAULT_KEY}.pub" "$(hostname) (Shattered Vales OS)" || failed=1
 
+    say "Commit signing"
+    if upload_key "${DEFAULT_KEY}.pub" "$(hostname) signing (Shattered Vales OS)" signing; then
+        enable_signing "${DEFAULT_KEY}.pub" "${email}"
+        echo "Commits and tags are now signed; GitHub shows them as Verified."
+    else
+        failed=1
+    fi
+
     say "Testing the connection"
     test_ssh github.com || failed=1
     save_profile default github.com "${name}" "${email}" "${login}"
@@ -316,6 +360,24 @@ cmd_setup() {
         read -r -p $'\nPress Enter to close.' _
     fi
     return "${failed}"
+}
+
+# cmd_signing
+#   Turns on commit signing for the main account on a workstation that ran
+#   setup before signing was part of it: refreshes the CLI's permissions,
+#   uploads the existing key as a signing key and configures Git.
+#   Arguments: none
+#   Returns: 0 on success, 1 on failure
+cmd_signing() {
+    local email
+    [[ -f "${DEFAULT_KEY}.pub" ]] || die "No SSH key yet. Run GitHub Setup (sv-github setup) first."
+    email="$(git config --global user.email)" || die "No Git email set. Run GitHub Setup (sv-github setup) first."
+    say "Commit signing"
+    gh_login || die "GitHub CLI sign-in failed."
+    upload_key "${DEFAULT_KEY}.pub" "$(hostname) signing (Shattered Vales OS)" signing \
+        || die "Could not add the signing key to GitHub."
+    enable_signing "${DEFAULT_KEY}.pub" "${email}"
+    echo "Commits and tags are now signed; GitHub shows them as Verified."
 }
 
 # cmd_add_profile
@@ -346,21 +408,24 @@ cmd_add_profile() {
         echo "In the browser, make sure you sign in as the '${alias}' account, not ${previous:-your main account}."
         echo "A private browser window makes that easiest."
         gh auth login --hostname github.com --git-protocol ssh --web \
-            --skip-ssh-key --scopes admin:public_key || die "Sign-in failed."
+            --skip-ssh-key --scopes "${GH_SCOPES}" || die "Sign-in failed."
         login="$(active_login)"
         if [[ -n "${previous}" && "${login}" == "${previous}" ]]; then
             die "Still signed in as ${previous}. Run this again and sign in with the other account."
         fi
         upload_key "${key}.pub" "$(hostname) (Shattered Vales OS)" || die "Could not add the key."
+        upload_key "${key}.pub" "$(hostname) signing (Shattered Vales OS)" signing \
+            || echo "Could not add it as a signing key; commits from this profile will show as Unverified."
         if [[ -n "${previous}" ]]; then
             gh auth switch --hostname github.com --user "${previous}"
             echo "The GitHub CLI is back on ${previous}. Switch with: gh auth switch"
         fi
     else
         wl-copy < "${key}.pub" 2>/dev/null && echo "The public key is on your clipboard."
-        echo "Sign in to the '${alias}' account, paste it as a new SSH key, then come back here."
+        echo "Sign in to the '${alias}' account and paste it twice under New SSH key:"
+        echo "once with Key type 'Authentication Key' and once with 'Signing Key'."
         xdg-open "https://github.com/settings/ssh/new" >/dev/null 2>&1 || true
-        read -r -p "Press Enter once the key is added." _
+        read -r -p "Press Enter once both are added." _
     fi
 
     say "Testing the connection"
@@ -388,6 +453,9 @@ cmd_use() {
     git remote set-url origin "git@${host}:${path}.git"
     git config user.name "$(profile_field "${alias}" NAME)"
     git config user.email "$(profile_field "${alias}" EMAIL)"
+    if [[ "${alias}" != default ]]; then
+        git config user.signingkey "${SSH_DIR}/github-${alias}.pub"
+    fi
     echo "origin  -> git@${host}:${path}.git"
     echo "commits -> $(git config user.name) <$(git config user.email)>"
 }
@@ -457,6 +525,7 @@ main() {
     shift || true
     case "${cmd}" in
         setup)       cmd_setup "$@" ;;
+        signing)     cmd_signing ;;
         add-profile) cmd_add_profile "$@" ;;
         use)         cmd_use "$@" ;;
         clone)       cmd_clone "$@" ;;

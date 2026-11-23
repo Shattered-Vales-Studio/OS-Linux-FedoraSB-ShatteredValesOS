@@ -98,6 +98,41 @@ step_rustup() {
     notify "Rust installed" "Open a new terminal to use cargo and rustc"
 }
 
+# step_homebrew
+#   Installs Homebrew into /home/linuxbrew/.linuxbrew for the account that
+#   owns that folder (see usr/lib/tmpfiles.d/shatteredvales-homebrew.conf).
+#   Per user because brew updates itself and its packages in place. Cloned
+#   directly rather than through Homebrew's install script, which asks for
+#   sudo; a full clone because `brew update` does not support shallow ones.
+#   Other accounts skip the step: Homebrew allows one owner per prefix.
+#   Returns: 0 when installed or skipped, 1 on download failure
+step_homebrew() {
+    local prefix=/home/linuxbrew/.linuxbrew
+    [[ -x "${prefix}/bin/brew" ]] && return 0
+    [[ -O /home/linuxbrew ]] || return 0
+    wait_for_network || return 1
+    mkdir -p "${prefix}/bin"
+    if [[ ! -d "${prefix}/Homebrew/.git" ]]; then
+        rm -rf "${prefix}/Homebrew"
+        git clone --quiet https://github.com/Homebrew/brew "${prefix}/Homebrew" || return 1
+    fi
+    ln -sfn ../Homebrew/bin/brew "${prefix}/bin/brew"
+    "${prefix}/bin/brew" update --force --quiet || return 1
+    notify "Homebrew installed" "Open a new terminal to use brew"
+}
+
+# step_mise
+#   Installs mise (per-project versions of Node, Python, Go, .NET and more)
+#   into ~/.local/bin with its official installer. Per user because mise
+#   updates itself (`mise self-update`). Activation lives in
+#   /etc/profile.d/shatteredvales-mise.sh.
+#   Returns: installer exit status
+step_mise() {
+    [[ -x "${HOME}/.local/bin/mise" ]] && return 0
+    wait_for_network || return 1
+    curl -fsSL https://mise.run | MISE_INSTALL_PATH="${HOME}/.local/bin/mise" sh || return 1
+}
+
 # step_jetbrains_toolbox
 #   Downloads JetBrains Toolbox (used to install and update Rider and other
 #   JetBrains IDEs), verifies its published SHA-256 and starts it once. On
@@ -343,6 +378,8 @@ main() {
     run_step unity-mcp-v1 step_unity_mcp || failed=1
     run_step npm-prefix-v1 step_npm_prefix || failed=1
     run_step rustup-v1 step_rustup || failed=1
+    run_step homebrew-v1 step_homebrew || failed=1
+    run_step mise-v1 step_mise || failed=1
     run_step jetbrains-toolbox-v1 step_jetbrains_toolbox || failed=1
     run_step source-dir-v1 step_source_dir || failed=1
     run_step github-reminder-v1 step_github_reminder || failed=1

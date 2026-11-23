@@ -265,11 +265,13 @@ SVG
     # Studio launcher icons: a dark tile in the site's surface colours with
     # a gold-foil line glyph, so each studio tool is recognisable in the app
     # grid while matching the logo. Glyphs are generic shapes (a document,
-    # a Git branch), never third-party logos.
+    # a Git branch, update arrows), never third-party logos.
     tile_icon "shatteredvales-new-project" \
         '<path d="M44 30h26l18 18v48a4 4 0 0 1-4 4H44a4 4 0 0 1-4-4V34a4 4 0 0 1 4-4z"/><path d="M70 30v18h18"/><path d="M64 62v26M51 75h26"/>'
     tile_icon "shatteredvales-github-setup" \
         '<circle cx="46" cy="38" r="9"/><circle cx="46" cy="92" r="9"/><circle cx="84" cy="52" r="9"/><path d="M46 47v36"/><path d="M84 61c0 16-38 10-38 22"/>'
+    tile_icon "shatteredvales-update" \
+        '<path d="M88 50a28 28 0 0 0-50-6"/><path d="M36 30v14h14"/><path d="M40 78a28 28 0 0 0 50 6"/><path d="M92 98V84H78"/>'
 
     cp branding/brand.env "${out}/usr/share/shatteredvales/brand.env"
     rm -rf "${tmp}"

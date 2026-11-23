@@ -37,23 +37,42 @@ below; `sv-gpu-image apply` keeps whichever tag a machine is on.
 
 ## Moving an existing Silverblue machine onto the image
 
-No reinstall needed. Check which image the hardware needs, then:
+No reinstall needed: accounts, files, settings and Flatpak apps all stay.
+On the machine, in a terminal:
 
 ```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/shattered-vales-studio/shatteredvales-os:latest
-systemctl reboot
-# After reboot, move to the signed image so updates are verified:
-rpm-ostree rebase ostree-image-signed:docker://ghcr.io/shattered-vales-studio/shatteredvales-os:latest
-systemctl reboot
+curl -fsSLO https://raw.githubusercontent.com/Shattered-Vales-Studio/OS-Linux-FedoraSB-ShatteredValesOS/main/sv-migrate.sh
+bash sv-migrate.sh
 ```
+
+(`wget https://raw.githubusercontent.com/Shattered-Vales-Studio/OS-Linux-FedoraSB-ShatteredValesOS/main/sv-migrate.sh`
+works too.) The script checks the machine, picks the NVIDIA or standard
+image from the hardware, removes packages layered with `rpm-ostree install`
+that would clash with the image (Node.js, RPM Fusion's NVIDIA driver,
+`kernel-devel`, Fedora's Docker packages), prints the plan, and only then
+asks to go ahead. After the restart the image switches itself to the
+signature-verified copy, which applies at the next restart. Run `sv-doctor`
+afterwards.
+
+| Option | Does |
+|---|---|
+| `--dry-run` | Print the plan and change nothing |
+| `--testing` | Use the canary channel instead of `:latest` |
+| `--nvidia` / `--base` | Override the image picked from the hardware |
+| `--remove-all-layered` | Also remove layered packages that do not clash; updates are faster and fully automatic without them |
+| `--yes` | Do not ask before rebasing or restarting |
 
 **NVIDIA machines with Secure Boot on:** the driver modules are signed with
 BlueBuild's key, which the firmware must trust once. After the first boot
 into the NVIDIA image run `blujust enroll-secure-boot-key`, reboot, choose
-*Enroll MOK* in the blue screen and enter the password `bluebuild`.
+*Enroll MOK* in the blue screen and enter the password `bluebuild`. The
+script reminds you when this applies.
 
 Existing users keep their own GNOME settings; the new defaults (dock, button
-layout, wallpaper) only apply to settings they have never changed.
+layout, wallpaper, app folders) only apply to settings they have never
+changed. To take the studio's app folders on an existing account, run
+`dconf reset -f /org/gnome/desktop/app-folders/ && dconf reset /org/gnome/shell/app-picker-layout`
+and log out straight away.
 
 ## New machines
 
@@ -107,9 +126,26 @@ separate private repo because it holds secrets).
 - **Per user at first login:** Claude Code, the Unity CLI, Rust (rustup), JetBrains Toolbox
   (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global
   prefix in `~/.local` so `npm install -g` works on the read-only system.
+- **Homebrew:** installed at first login into `/home/linuxbrew/.linuxbrew`
+  for the machine's primary account (Homebrew allows one owner per
+  machine; other accounts can run what it installs). Use it for command-line
+  tools instead of `rpm-ostree install`, which slows every update. Brew's
+  tools come after the system's on `PATH`, so a formula never replaces the
+  image's own Python or GCC; add `eval "$(brew shellenv)"` to `~/.bashrc` to
+  put brew first.
+- **mise:** per-project tool versions. Add a `mise.toml` (or
+  `.tool-versions`) to a repository, run `mise install`, and Node, Python,
+  Go, .NET, Java and others switch automatically when you `cd` into it;
+  scripts and Claude Code get the same versions through mise's shims. Set
+  `SV_MISE=0` to turn it off.
+- **Ubuntu containers:** `sv-box` opens an Ubuntu 24.04 container with build
+  tools, your home folder and, on NVIDIA machines, the GPU, for SDKs that
+  only support Ubuntu. Nothing is installed on the OS itself.
 - **GitHub setup:** *GitHub Setup* in the app grid (or `sv-github setup`)
   follows the studio guides: Git identity, GitHub CLI sign-in, an SSH key
-  uploaded with `gh`, and `~/Source`. `sv-github add-profile <alias>` adds a
+  uploaded with `gh`, and `~/Source`. The same key signs every commit and
+  tag, so GitHub marks them *Verified*; accounts set up earlier turn this on
+  with `sv-github signing`. `sv-github add-profile <alias>` adds a
   second GitHub account per *Managing Multiple GitHub SSH Keys*;
   `sv-github clone <alias> <owner/repo>` and `sv-github use <alias>` apply it.
 - **Git defaults:** `/etc/gitconfig` holds the settings from the *Daily Git
@@ -146,7 +182,7 @@ separate private repo because it holds secrets).
 | `sudo sv-gpu-image apply` | Switches to the matching image after a GPU change |
 | `sv-first-login` | Re-runs per-user setup (e.g. for SSH-only accounts) |
 | `sv-doctor` | Health check for support; `sv-doctor --copy` copies the report to paste into a message |
-| `sv-update` | Shows the waiting OS update and what it changes; `now` updates immediately, `rollback` goes back |
+| `sv-update` | Shows the waiting OS update and what it changes; `now` updates immediately, `rollback` goes back. *System Update* in the app grid runs `sv-update now` |
 | `sv-branch <issue>` | Creates `feature/issue-<n>-<title>` from the latest `Dev` |
 | `sv-rebase` | The guide's safe rebase onto `Dev`: backup, fetch, rebase, push with lease; `--continue` after conflicts |
 | `sv-lfs-init unity\|godot\|blender` | Adds the LFS guide's `.gitattributes` (with lockable art) and engine `.gitignore` to a repo |
@@ -157,6 +193,10 @@ separate private repo because it holds secrets).
 | `sv-new-project [name]` | New project from the Claude template, straight into the design interview |
 | `sv-github setup` | Connects the account to GitHub (same as *GitHub Setup*) |
 | `sv-github list` | Shows GitHub profiles; `sv-github test [alias]` checks one |
+| `sv-github signing` | Turns on Verified (signed) commits for an account set up before signing was added |
+| `sv-box [enter\|create\|run\|export\|list\|rm]` | Ubuntu containers for Ubuntu-only SDKs; plain `sv-box` enters the default one, creating it first |
+| `brew install <tool>` | Command-line tools without layering packages onto the OS |
+| `mise use node@22` | Pins a tool version for the current project (writes `mise.toml`) |
 | `rpm-ostree rollback` | Boots the previous image if an update misbehaves |
 
 ## Developing

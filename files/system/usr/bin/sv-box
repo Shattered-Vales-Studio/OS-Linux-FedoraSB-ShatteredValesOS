@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+#
+# sv-box
+#
+# Purpose:
+#   One-command Ubuntu containers (Distrobox) for SDKs and tools that only
+#   support Ubuntu. The container shares your home folder, so ~/Source and
+#   your Git and SSH settings work inside it; it has build tools installed,
+#   and on NVIDIA workstations it can use the GPU. Nothing is installed on
+#   the OS itself, so it never blocks an OS update.
+#
+# Usage:
+#   sv-box                      Enter the default box, creating it first
+#   sv-box enter [name]         Same, for a named box
+#   sv-box create [name] [--image <image>]
+#                               Create a box (default image: Ubuntu 24.04)
+#   sv-box run [name] -- <cmd>  Run one command in a box
+#   sv-box export [name] <app>  Add an app installed in the box to the app grid
+#   sv-box list                 Show boxes
+#   sv-box rm [name]            Delete a box (your home folder is untouched)
+#   The default name is "ubuntu".
+#
+# Exit codes:
+#   0 on success, 1 on failure, 64 on bad usage.
+
+set -euo pipefail
+
+readonly DEFAULT_NAME="ubuntu"
+readonly DEFAULT_IMAGE="quay.io/toolbx/ubuntu-toolbox:24.04"
+readonly PACKAGES="build-essential git git-lfs curl wget unzip pkg-config"
+
+# say
+#   Prints a highlighted progress line.
+#   Arguments: message words
+#   Returns: 0 always
+say() {
+    printf '\n\033[1;33m==>\033[0m \033[1m%s\033[0m\n' "$*"
+}
+
+# die
+#   Prints an error and exits.
+#   Arguments: $1 message, $2 exit code (default 1)
+#   Returns: does not return
+die() {
+    printf '\033[1;31mError:\033[0m %s\n' "$1" >&2
+    exit "${2:-1}"
+}
+
+# box_exists
+#   Tells whether a Distrobox container with this name exists.
+#   Arguments: $1 box name
+#   Returns: 0 if it exists, 1 otherwise
+box_exists() {
+    distrobox list --no-color 2>/dev/null | awk -F'|' 'NR > 1 {gsub(/ /, "", $2); print $2}' \
+        | grep -qx "$1"
+}
+
+# cmd_create
+#   Creates a box with build tools, adding GPU access on NVIDIA machines.
+#   Arguments: $1 box name, $2 image
+#   Returns: distrobox's exit status
+cmd_create() {
+    local name="$1" image="$2"
+    local -a flags=()
+    box_exists "${name}" && die "A box named '${name}' already exists. Enter it with: sv-box enter ${name}"
+    if command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then
+        # Mounts the host's NVIDIA driver so CUDA and Vulkan work inside.
+        flags+=(--nvidia)
+    fi
+    say "Creating box '${name}' from ${image}"
+    echo "The first time takes a few minutes while the image downloads."
+    distrobox create --yes --name "${name}" --image "${image}" \
+        --additional-packages "${PACKAGES}" "${flags[@]}"
+}
+
+# ensure_box
+#   Creates the box if it does not exist yet.
+#   Arguments: $1 box name
+#   Returns: 0 when the box exists
+ensure_box() {
+    box_exists "$1" || cmd_create "$1" "${DEFAULT_IMAGE}"
+}
+
+# main
+#   Dispatches the subcommand.
+#   Arguments: see Usage
+#   Returns: the subcommand's status, or 64 on bad usage
+main() {
+    command -v distrobox >/dev/null || die "Distrobox is not installed."
+    local cmd="${1:-enter}" name image
+    shift || true
+    case "${cmd}" in
+        enter)
+            name="${1:-${DEFAULT_NAME}}"
+            ensure_box "${name}"
+            exec distrobox enter "${name}"
+            ;;
+        create)
+            name="${DEFAULT_NAME}" image="${DEFAULT_IMAGE}"
+            if [[ -n "${1:-}" && "$1" != --image ]]; then name="$1"; shift; fi
+            if [[ "${1:-}" == --image ]]; then image="${2:?--image needs a value}"; fi
+            cmd_create "${name}" "${image}"
+            ;;
+        run)
+            name="${DEFAULT_NAME}"
+            if [[ -n "${1:-}" && "$1" != -- ]]; then name="$1"; shift; fi
+            [[ "${1:-}" == -- ]] || die "Usage: sv-box run [name] -- <command>" 64
+            shift
+            (( $# > 0 )) || die "Usage: sv-box run [name] -- <command>" 64
+            ensure_box "${name}"
+            exec distrobox enter "${name}" -- "$@"
+            ;;
+        export)
+            if (( $# == 2 )); then name="$1"; shift; else name="${DEFAULT_NAME}"; fi
+            [[ -n "${1:-}" ]] || die "Usage: sv-box export [name] <app>" 64
+            box_exists "${name}" || die "No box named '${name}'."
+            distrobox enter "${name}" -- distrobox-export --app "$1"
+            ;;
+        list)
+            distrobox list
+            ;;
+        rm)
+            name="${1:-${DEFAULT_NAME}}"
+            box_exists "${name}" || die "No box named '${name}'."
+            distrobox rm --force "${name}"
+            echo "Removed '${name}'. Your home folder was not touched."
+            ;;
+        help|-h|--help)
+            sed -n '/^# Usage:/,/^#$/p' "$0" | sed 's/^# \{0,3\}//'
+            ;;
+        *)
+            sed -n '/^# Usage:/,/^#$/p' "$0" | sed 's/^# \{0,3\}//' >&2
+            exit 64
+            ;;
+    esac
+}
+
+main "$@"

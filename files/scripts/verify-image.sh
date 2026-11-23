@@ -19,7 +19,7 @@ readonly REQUIRED_RPMS=(
     subversion p4-cli gcc gcc-c++ cmake ninja-build clang gdb
     renderdoc vulkan-tools vulkan-validation-layers mangohud gamemode
     android-tools openxr monado dotnet-sdk-10.0
-    nodejs26 nodejs26-npm pnpm chromium gh pipx uv
+    nodejs26 nodejs26-npm pnpm chromium gh pipx uv distrobox
     webkit2gtk4.1-devel gtk3-devel libayatana-appindicator-gtk3-devel
     mingw64-gcc mingw64-gcc-c++ flatpak-builder rpm-build
     virt-manager libvirt-daemon-kvm qemu-kvm
@@ -85,6 +85,14 @@ readonly REQUIRED_PATHS=(
     /etc/dconf/db/local.d/20-shatteredvales-app-folders
     /usr/share/icons/hicolor/scalable/apps/shatteredvales-new-project.svg
     /usr/share/icons/hicolor/scalable/apps/shatteredvales-github-setup.svg
+    /usr/bin/sv-box
+    /usr/share/applications/shatteredvales-update.desktop
+    /usr/share/icons/hicolor/scalable/apps/shatteredvales-update.svg
+    /usr/libexec/shatteredvales/signed-switch.sh
+    /usr/lib/systemd/system/shatteredvales-signed-switch.service
+    /usr/lib/tmpfiles.d/shatteredvales-homebrew.conf
+    /etc/profile.d/shatteredvales-brew.sh
+    /etc/profile.d/shatteredvales-mise.sh
     /etc/dconf/db/local
     /etc/dconf/db/gdm
 )

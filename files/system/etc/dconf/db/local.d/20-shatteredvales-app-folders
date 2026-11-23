@@ -66,7 +66,7 @@ apps=['org.gnome.Connections.desktop', 'org.gnome.Papers.desktop', 'org.gnome.fo
 [org/gnome/desktop/app-folders/folders/System]
 name='X-GNOME-Shell-System.directory'
 translate=true
-apps=['org.gnome.Software.desktop', 'org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.freedesktop.MalcontentControl.desktop', 'org.gnome.SystemMonitor.desktop', 'com.mattjakeman.ExtensionManager.desktop', 'nvidia-settings.desktop', 'org.gnome.Tour.desktop', 'org.gnome.clocks.desktop', 'org.gnome.Yelp.desktop', 'io.github.realmazharhussain.GdmSettings.desktop', 'org.remmina.Remmina.desktop', 'org.gnome.Settings.desktop', 'com.github.tchx84.Flatseal.desktop', 'htop.desktop', 'nvtop.desktop', 'com.parsecgaming.parsec.desktop']
+apps=['shatteredvales-update.desktop', 'org.gnome.Software.desktop', 'org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.freedesktop.MalcontentControl.desktop', 'org.gnome.SystemMonitor.desktop', 'com.mattjakeman.ExtensionManager.desktop', 'nvidia-settings.desktop', 'org.gnome.Tour.desktop', 'org.gnome.clocks.desktop', 'org.gnome.Yelp.desktop', 'io.github.realmazharhussain.GdmSettings.desktop', 'org.remmina.Remmina.desktop', 'org.gnome.Settings.desktop', 'com.github.tchx84.Flatseal.desktop', 'htop.desktop', 'nvtop.desktop', 'com.parsecgaming.parsec.desktop']
 
 # Steam first on the grid's first page, ahead of the folders. Apps a user
 # installs later that match no folder appear after it.
