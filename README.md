@@ -129,8 +129,9 @@ Studio stick installs unattended and erases the internal disk.
   (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global
   prefix in `~/.local` so `npm install -g` works on the read-only system.
 - **Homebrew:** installed at first login into `/home/linuxbrew/.linuxbrew`
-  for the machine's primary account (Homebrew allows one owner per
-  machine; other accounts can run what it installs). Use it for command-line
+  by the first administrator who logs in, except the installer's IT
+  account (Homebrew allows one owner per machine; other accounts can run
+  what it installs). Use it for command-line
   tools instead of `rpm-ostree install`, which slows every update. Brew's
   tools come after the system's on `PATH`, so a formula never replaces the
   image's own Python or GCC; add `eval "$(brew shellenv)"` to `~/.bashrc` to

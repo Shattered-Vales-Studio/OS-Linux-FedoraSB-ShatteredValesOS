@@ -99,17 +99,29 @@ step_rustup() {
 }
 
 # step_homebrew
-#   Installs Homebrew into /home/linuxbrew/.linuxbrew for the account that
-#   owns that folder (see usr/lib/tmpfiles.d/shatteredvales-homebrew.conf).
-#   Per user because brew updates itself and its packages in place. Cloned
-#   directly rather than through Homebrew's install script, which asks for
-#   sudo; a full clone because `brew update` does not support shallow ones.
-#   Other accounts skip the step: Homebrew allows one owner per prefix.
+#   Installs Homebrew into /home/linuxbrew/.linuxbrew for the first
+#   administrator who logs in (see usr/lib/tmpfiles.d/
+#   shatteredvales-homebrew.conf). Per user because brew updates itself and
+#   its packages in place. Cloned directly rather than through Homebrew's
+#   install script, which asks for sudo; a full clone because `brew update`
+#   does not support shallow ones. Skipped, and marked done, for everyday
+#   accounts, for accounts in /etc/shatteredvales/homebrew-skip-users (the
+#   installer's IT account) and once another account owns Homebrew.
 #   Returns: 0 when installed or skipped, 1 on download failure
 step_homebrew() {
-    local prefix=/home/linuxbrew/.linuxbrew
+    local parent=/home/linuxbrew prefix=/home/linuxbrew/.linuxbrew
+    local skip=/etc/shatteredvales/homebrew-skip-users
     [[ -x "${prefix}/bin/brew" ]] && return 0
-    [[ -O /home/linuxbrew ]] || return 0
+    is_admin || return 0
+    if [[ -r "${skip}" ]] && grep -qx "${USER}" "${skip}"; then
+        return 0
+    fi
+    if [[ -e "${prefix}" ]]; then
+        [[ -O "${prefix}" ]] || return 0
+    else
+        [[ -w "${parent}" ]] || return 0
+        mkdir "${prefix}" || return 0
+    fi
     wait_for_network || return 1
     mkdir -p "${prefix}/bin"
     if [[ ! -d "${prefix}/Homebrew/.git" ]]; then
