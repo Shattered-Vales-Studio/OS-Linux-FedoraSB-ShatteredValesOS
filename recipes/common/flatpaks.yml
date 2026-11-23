@@ -1,0 +1,16 @@
+---
+# GUI apps installed from Flathub on first boot. Flatpaks update
+# independently of the image and keep their sandboxes, which suits
+# consumer apps better than layering them as RPMs.
+modules:
+  - type: default-flatpaks
+    configurations:
+      - notify: true
+        scope: system
+        install:
+          - com.valvesoftware.Steam
+          - com.bitwarden.desktop
+          - com.obsproject.Studio
+          - org.remmina.Remmina
+          - com.mattjakeman.ExtensionManager
+          - com.github.tchx84.Flatseal

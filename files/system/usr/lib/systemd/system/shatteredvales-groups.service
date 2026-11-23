@@ -1,0 +1,11 @@
+[Unit]
+Description=Grant workstation users access to Docker
+After=systemd-sysusers.service
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/shatteredvales/ensure-groups.sh
+
+[Install]
+WantedBy=multi-user.target

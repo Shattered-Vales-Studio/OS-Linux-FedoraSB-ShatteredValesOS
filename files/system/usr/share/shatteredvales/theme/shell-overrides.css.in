@@ -1,0 +1,79 @@
+/*
+ * Brand overrides appended to GNOME Shell's built-in stylesheets.
+ * These affect the login screen (GDM) and the lock screen, which never load
+ * user themes. Selectors follow upstream gnome-shell; re-check them on each
+ * Fedora major upgrade because GNOME renames classes without notice.
+ *
+ * St (the shell toolkit) cannot clip a gradient to text, so the website's
+ * gold foil appears only in the rendered artwork. Text and controls use the
+ * flat gold, which keeps every pairing at WCAG AAA (7:1 or better) against
+ * the brand background:
+ *   @BRAND_ACCENT@ on @BRAND_BG@   8.3:1    @BRAND_BG@ on @BRAND_ACCENT@   8.3:1
+ *   @BRAND_TEXT@ on @BRAND_BG@    19.2:1    @BRAND_TEXT_MUTED@ on @BRAND_BG@  8.1:1
+ */
+
+/* Login and lock background and typography */
+#lockDialogGroup {
+  background-color: @BRAND_BG@;
+}
+
+.login-dialog,
+.unlock-dialog {
+  font-family: "@BRAND_FONT_FAMILY@", sans-serif;
+  color: @BRAND_TEXT@;
+}
+
+.login-dialog-button.default,
+.unlock-dialog .button.default {
+  background-color: @BRAND_ACCENT@;
+  color: @BRAND_BG@;
+}
+
+.login-dialog-button.default:hover,
+.login-dialog-button.default:focus,
+.unlock-dialog .button.default:hover,
+.unlock-dialog .button.default:focus {
+  background-color: @BRAND_ACCENT_LIGHT@;
+  color: @BRAND_BG@;
+}
+
+.login-dialog StEntry,
+.unlock-dialog StEntry {
+  border-color: @BRAND_BORDER@;
+}
+
+.login-dialog StEntry:focus,
+.unlock-dialog StEntry:focus {
+  border-color: @BRAND_ACCENT@;
+}
+
+/*
+ * Lock screen: logo and company name rendered as one image above the clock.
+ * The header is drawn as the clock container's background so it stays
+ * centered with the clock at every resolution. The PNG is rendered at 2x
+ * (960x440) and scaled down here so it stays sharp on HiDPI displays.
+ */
+.unlock-dialog-clock {
+  padding-top: 240px;
+  background-image: url("file:///usr/share/shatteredvales/lockscreen-header.png");
+  background-position: center top;
+  background-size: 480px 220px;
+  background-repeat: no-repeat;
+}
+
+.unlock-dialog-clock-time {
+  font-family: "@BRAND_CLOCK_FONT_FAMILY@", serif;
+  color: @BRAND_ACCENT@;
+  font-weight: 700;
+  /* Mirrors the website's soft gold halo (drop-shadow 0 0 14px, 14%). */
+  text-shadow: 0 0 14px rgba(@BRAND_ACCENT_RGB@, 0.35);
+}
+
+.unlock-dialog-clock-date {
+  font-family: "@BRAND_FONT_FAMILY@", sans-serif;
+  color: @BRAND_TEXT_MUTED@;
+}
+
+.unlock-dialog-clock-hint {
+  color: @BRAND_TEXT_MUTED@;
+}

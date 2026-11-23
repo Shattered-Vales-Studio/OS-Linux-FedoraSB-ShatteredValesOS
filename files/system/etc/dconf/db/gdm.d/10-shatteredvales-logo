@@ -1,0 +1,10 @@
+# Login screen branding. The logo key is GDM's own supported setting and is
+# shown below the user list.
+[org/gnome/login-screen]
+logo='/usr/share/pixmaps/shatteredvales-gdm-logo.png'
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+accent-color='@BRAND_GNOME_ACCENT@'
+font-name='@BRAND_FONT_FAMILY@ 11'
+clock-format='12h'

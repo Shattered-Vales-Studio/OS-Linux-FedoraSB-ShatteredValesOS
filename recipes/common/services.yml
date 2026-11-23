@@ -1,0 +1,10 @@
+---
+modules:
+  - type: systemd
+    system:
+      enabled:
+        - docker.socket
+        - tailscaled.service
+        - sshd.service
+        - shatteredvales-groups.service
+        - shatteredvales-gpu-check.service
