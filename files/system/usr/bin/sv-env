@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+#
+# sv-env
+#
+# Purpose:
+#   Runs a command with secrets from the studio's Bitwarden vault as
+#   environment variables, so .env files with real secrets never exist on
+#   disk and secrets never appear in shell history or process arguments.
+#   This is the "you run the command that uses it" half of the template's
+#   SECRETS.md rule; agents are blocked from running it by guard-secrets.sh.
+#
+#   Each vault item supplies variables from:
+#     - custom fields whose names are valid variable names (API_KEY, ...)
+#     - lines of the item's notes in KEY=value form
+#
+# Usage:
+#   sv-env <item> [<item> ...] -- <command> [args...]
+#   sv-env --list <item>        Show which variable NAMES an item provides.
+#   sv-env --lock               Forget the unlocked vault session now.
+#   Example: sv-env "MyGame Steam upload" -- ./scripts/upload.sh
+#
+# State:
+#   The unlocked session key is kept for 30 minutes in
+#   $XDG_RUNTIME_DIR/sv-env (memory only, readable by you only, gone at
+#   logout), so several commands in a row ask for the master password once.
+#
+# Exit codes:
+#   The command's own exit status; 1 if the vault or an item can't be read;
+#   64 on bad usage.
+
+set -euo pipefail
+
+readonly SESSION_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sv-env"
+readonly SESSION_FILE="${SESSION_DIR}/session"
+readonly SESSION_MAX_AGE=1800
+readonly NAME_RE='^[A-Za-z_][A-Za-z0-9_]*$'
+
+# die
+#   Prints an error and exits.
+#   Arguments: message words
+#   Returns: does not return
+die() {
+    printf 'sv-env: %s\n' "$*" >&2
+    exit 1
+}
+
+# vault_status
+#   Prints the Bitwarden CLI's state: unauthenticated, locked or unlocked.
+#   Arguments: none (uses BW_SESSION if set)
+#   Output: the status word
+#   Returns: 0 always
+vault_status() {
+    bw status 2>/dev/null | jq -r '.status // "unauthenticated"'
+}
+
+# load_cached_session
+#   Exports a cached session key if it is recent and still unlocks the vault.
+#   Arguments: none
+#   Returns: 0 if a usable session was loaded, 1 otherwise
+load_cached_session() {
+    [[ -f "${SESSION_FILE}" ]] || return 1
+    local age=$(( $(date +%s) - $(stat -c %Y "${SESSION_FILE}") ))
+    (( age < SESSION_MAX_AGE )) || { rm -f "${SESSION_FILE}"; return 1; }
+    BW_SESSION="$(<"${SESSION_FILE}")"
+    export BW_SESSION
+    [[ "$(vault_status)" == unlocked ]]
+}
+
+# unlock_vault
+#   Signs in to Bitwarden if needed, unlocks the vault (both prompt on the
+#   terminal), syncs it, and caches the session key in memory-backed storage.
+#   Arguments: none
+#   Returns: does not return on failure
+unlock_vault() {
+    load_cached_session && return 0
+    unset BW_SESSION
+    case "$(vault_status)" in
+        unauthenticated)
+            echo "Sign in to the studio Bitwarden vault:" >&2
+            bw login >&2 || die "Bitwarden sign-in failed."
+            ;;
+    esac
+    BW_SESSION="$(bw unlock --raw)" || die "Could not unlock the vault."
+    export BW_SESSION
+    bw sync --quiet >/dev/null 2>&1 || echo "sv-env: vault sync failed; using the last synced copy." >&2
+    mkdir -p "${SESSION_DIR}"
+    chmod 700 "${SESSION_DIR}"
+    ( umask 077 && printf '%s' "${BW_SESSION}" > "${SESSION_FILE}" )
+}
+
+# item_variables
+#   Prints an item's variables as NUL-separated NAME=value pairs, from its
+#   custom fields and from KEY=value lines in its notes. Names that are not
+#   valid shell variable names are skipped.
+#   Arguments: $1 item name or id
+#   Output: NAME=value records separated by NUL bytes
+#   Returns: does not return if the item can't be read
+item_variables() {
+    local item
+    item="$(bw get item "$1" 2>/dev/null)" || die "No vault item named \"$1\" (or it matches several; use the item id)."
+    jq -j --arg re "${NAME_RE}" '
+        ([.fields[]? | select(.name != null and (.name | test($re))) | "\(.name)=\(.value // "")"]
+         + [(.notes // "") | split("\n")[] | sub("\r$"; "")
+            | select(test("^[A-Za-z_][A-Za-z0-9_]*=")) ])
+        | .[] | . + "\u0000"' <<<"${item}"
+}
+
+# main
+#   Parses arguments, loads the requested items into the environment and
+#   replaces itself with the command.
+#   Arguments: see Usage
+#   Returns: does not return on success (the command replaces this process)
+main() {
+    case "${1:-}" in
+        ""|-h|--help) sed -n '/^# Usage:/,/^#$/p' "$0" | sed 's/^# \{0,3\}//'; exit 64 ;;
+        --lock)
+            rm -f "${SESSION_FILE}"
+            bw lock >/dev/null 2>&1 || true
+            echo "Vault locked."
+            exit 0
+            ;;
+        --list)
+            [[ -n "${2:-}" ]] || { echo "Usage: sv-env --list <item>" >&2; exit 64; }
+            command -v bw >/dev/null || die "The Bitwarden CLI (bw) is not installed."
+            unlock_vault
+            item_variables "$2" | tr '\0' '\n' | cut -d= -f1
+            exit 0
+            ;;
+    esac
+
+    local -a items=()
+    while (( $# )) && [[ "$1" != -- ]]; do
+        items+=("$1")
+        shift
+    done
+    [[ "${1:-}" == -- && $# -ge 2 && ${#items[@]} -gt 0 ]] \
+        || { echo "Usage: sv-env <item> [<item> ...] -- <command> [args...]" >&2; exit 64; }
+    shift
+    command -v bw >/dev/null || die "The Bitwarden CLI (bw) is not installed."
+
+    unlock_vault
+
+    # Values are exported with bash's own `export`, never passed as
+    # arguments (to `env` or anything else), so they never appear in
+    # /proc/<pid>/cmdline or `ps` output.
+    local item pair name loaded=()
+    for item in "${items[@]}"; do
+        while IFS= read -r -d '' pair; do
+            name="${pair%%=*}"
+            export "${name}=${pair#*=}"
+            loaded+=("${name}")
+        done < <(item_variables "${item}")
+    done
+    (( ${#loaded[@]} )) || die "The item(s) provided no variables (use custom fields or KEY=value lines in notes)."
+    echo "sv-env: loaded ${loaded[*]}" >&2
+
+    # The child must not inherit the vault session key.
+    unset BW_SESSION
+    exec "$@"
+}
+
+main "$@"

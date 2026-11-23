@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=New Claude Project
+GenericName=Start a project from the studio template
+Comment=Create a repository from the Claude Code template and start the design interview
+Exec=sv-new-project
+Icon=shatteredvales-logo
+Terminal=true
+Categories=Development;
+Keywords=claude;project;template;repository;new;

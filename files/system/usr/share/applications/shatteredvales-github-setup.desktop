@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=GitHub Setup
+GenericName=Connect this workstation to GitHub
+Comment=Sign in to the GitHub CLI, create and upload an SSH key, and set your Git identity
+Exec=sv-github setup --wait
+Icon=shatteredvales-logo
+Terminal=true
+Categories=Development;
+Keywords=git;github;ssh;key;gh;

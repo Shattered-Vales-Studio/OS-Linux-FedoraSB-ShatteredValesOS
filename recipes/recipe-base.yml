@@ -13,10 +13,15 @@ base-image: ghcr.io/blue-build/base-images/fedora-silverblue
 # Pinned so a Fedora major release is an explicit, tested change rather than
 # something that lands on every workstation overnight.
 image-version: 45
+# Builds from main publish only :testing (canary machines). The
+# promote-images workflow moves :latest, which the rest of the studio runs.
+alt-tags:
+  - testing
 
 modules:
   - from-file: common/files.yml
   - from-file: common/packages.yml
+  - from-file: common/devtools.yml
   - from-file: common/extras.yml
   - from-file: common/desktop.yml
   - from-file: common/branding.yml

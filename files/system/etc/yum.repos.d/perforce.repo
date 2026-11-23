@@ -1,0 +1,9 @@
+# Perforce publishes RHEL packages only. The RHEL 10 build is a static
+# client binary that runs unchanged on current Fedora. p4-cli installs into
+# /opt/perforce, which BlueBuild relocates into /usr/lib/opt at build time.
+[perforce]
+name=Perforce
+baseurl=https://package.perforce.com/yum/rhel/10/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://package.perforce.com/perforce.pubkey

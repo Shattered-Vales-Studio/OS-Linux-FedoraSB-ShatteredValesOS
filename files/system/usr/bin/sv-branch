@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+#
+# sv-branch
+#
+# Purpose:
+#   Starts work on a GitHub issue the way the "Daily Git Terminal Workflow"
+#   guide describes: fetches, reads the issue title with the GitHub CLI and
+#   creates feature/issue-<number>-<short-description> from the latest
+#   origin/Dev (or origin/dev in repositories from the Claude template).
+#
+# Usage:
+#   sv-branch <issue-number> [base-branch]
+#   sv-branch 42            -> feature/issue-42-inventory-sort-is-wrong
+#
+# Exit codes:
+#   0 on success, 1 on failure, 64 on bad usage.
+
+set -euo pipefail
+
+# shellcheck source=files/system/usr/libexec/shatteredvales/git-common.sh
+source /usr/libexec/shatteredvales/git-common.sh
+
+# slugify
+#   Turns an issue title into a short branch-safe description: lowercase,
+#   words joined by dashes, at most about 40 characters on a word boundary.
+#   Arguments: $1 title
+#   Output: slug on stdout
+#   Returns: 0 always
+slugify() {
+    local slug
+    slug="$(tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')"
+    if (( ${#slug} > 40 )); then
+        slug="${slug:0:40}"
+        # Cut back to the last whole word.
+        [[ "${slug}" == *-* ]] && slug="${slug%-*}"
+    fi
+    printf '%s' "${slug:-work}"
+}
+
+# main
+#   Validates the issue, then creates and switches to the feature branch.
+#   Arguments: $1 issue number, $2 optional base branch
+#   Returns: 0 on success, 64 on bad usage
+main() {
+    local issue="${1:-}" base title state slug branch
+    [[ "${issue}" =~ ^[0-9]+$ ]] || { echo "Usage: sv-branch <issue-number> [base-branch]" >&2; exit 64; }
+    require_repo
+    require_clean_tree
+
+    say "Reading issue #${issue}"
+    title="$(gh issue view "${issue}" --json title --jq .title)" || die "Could not read issue #${issue} (is gh signed in to this repository's account?)."
+    state="$(gh issue view "${issue}" --json state --jq .state)"
+    [[ "${state}" == OPEN ]] || echo "Note: issue #${issue} is ${state,,}."
+    echo "${title}"
+
+    git fetch --quiet origin
+    base="$(integration_branch "${2:-}")"
+    slug="$(slugify "${title}")"
+    branch="feature/issue-${issue}-${slug}"
+
+    if git show-ref --verify --quiet "refs/heads/${branch}"; then
+        say "Switching to the existing ${branch}"
+        git switch "${branch}"
+        return 0
+    fi
+    say "Creating ${branch} from origin/${base}"
+    git switch --no-track -c "${branch}" "origin/${base}"
+    echo "The first 'git push' sets up tracking. When ready: gh pr create --base ${base}"
+}
+
+main "$@"

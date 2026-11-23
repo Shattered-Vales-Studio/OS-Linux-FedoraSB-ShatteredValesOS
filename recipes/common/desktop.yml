@@ -10,7 +10,8 @@ modules:
   - type: fonts
     fonts:
       google-fonts:
-        # Must match BRAND_FONT_FAMILY and BRAND_DISPLAY_FONT_FAMILY in
-        # branding/brand.env (the website's body and display fonts).
+        # Must match the BRAND_*_FONT_FAMILY values in branding/brand.env
+        # (the website's body, display and code fonts).
         - Lato
         - Cinzel
+        - JetBrains Mono

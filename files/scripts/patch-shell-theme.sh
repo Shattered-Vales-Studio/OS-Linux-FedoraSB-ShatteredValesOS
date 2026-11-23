@@ -67,9 +67,16 @@ render_css() {
 #   Arguments: none
 #   Returns: non-zero on any failure
 main() {
-    # glib2-devel provides gresource tooling; it is removed again below so
-    # build-only tools never reach workstations.
-    dnf -y install glib2-devel
+    # glib2-devel provides the gresource tooling. If an earlier module already
+    # installed it (the desktop-app headers depend on it), it must stay;
+    # otherwise it is removed again below so build-only tools never reach
+    # workstations. Removing it unconditionally would also remove every
+    # -devel package that depends on it.
+    local installed_here=0
+    if ! rpm -q glib2-devel >/dev/null; then
+        dnf -y install glib2-devel
+        installed_here=1
+    fi
 
     local work css
     work="$(mktemp -d)"
@@ -104,7 +111,9 @@ main() {
         --target="${GRESOURCE}" "${work}/theme.gresource.xml"
 
     rm -rf "${work}"
-    dnf -y remove glib2-devel
+    if (( installed_here )); then
+        dnf -y remove glib2-devel
+    fi
     echo "Patched ${patched} shell stylesheet(s)"
 }
 

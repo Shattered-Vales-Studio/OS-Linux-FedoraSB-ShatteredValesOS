@@ -1,0 +1,25 @@
+# Craft App Suite apps installed for every user at first login by
+# first-login.sh (step artcraft-apps), as user Flatpak bundles from each
+# app's latest GitHub release, exactly as ArtCraft Launcher installs them on
+# image-based systems. The launcher detects them and manages their updates.
+# Source of this list: storytold/craft-launcher crates/core/catalog.toml.
+# Community apps (SolidCraft, MailCraft) are left to the launcher.
+#
+# id            flatpak-id                       github-repo
+photocraft      ai.storyteller.photocraft        storytold/photocraft
+vectorcraft     ai.storyteller.vectorcraft       storytold/vectorcraft
+filmcraft       ai.storyteller.filmcraft         storytold/filmcraft
+lightcraft      ai.storyteller.lightcraft        storytold/lightcraft
+pdfcraft        ai.storyteller.pdfcraft          storytold/pdfcraft
+effectcraft     ai.storyteller.effectcraft       storytold/effectcraft
+anicraft        ai.storyteller.anicraft          storytold/anicraft
+designcraft     ai.storyteller.designcraft       storytold/designcraft
+figcraft        ai.storyteller.figcraft          storytold/figcraft
+soundcraft      ai.storyteller.soundcraft        storytold/soundcraft
+wordcraft       ai.storyteller.wordcraft         storytold/wordcraft
+deckcraft       ai.storyteller.deckcraft         storytold/deckcraft
+cadcraft        ai.storyteller.cadcraft          storytold/cadcraft
+gridcraft       ai.storyteller.gridcraft         storytold/gridcraft
+texturecraft    ai.storyteller.texturecraft      storytold/texturecraft
+materialcraft   ai.storyteller.materialcraft     storytold/materialcraft
+craft-anything  ai.storyteller.craft-anything    storytold/craft-anything

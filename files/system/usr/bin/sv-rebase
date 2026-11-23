@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+#
+# sv-rebase
+#
+# Purpose:
+#   The "Daily Git Terminal Workflow" guide's six-step safe rebase onto the
+#   latest Dev as one command: checks the working tree is clean, saves a
+#   backup branch, fetches, rebases onto origin/Dev (or origin/dev), shows
+#   the result, and asks before pushing with --force-with-lease.
+#
+# Usage:
+#   sv-rebase [base-branch]    Rebase the current branch onto origin/<base>.
+#   sv-rebase --continue       After resolving conflicts: continue, then
+#                              show the result and offer to push.
+#
+# Exit codes:
+#   0 on success, 1 on failure or unresolved conflicts, 64 on bad usage.
+
+set -euo pipefail
+
+# shellcheck source=files/system/usr/libexec/shatteredvales/git-common.sh
+source /usr/libexec/shatteredvales/git-common.sh
+
+readonly PROTECTED_RE='^(main|master|Dev|dev|QA|qa)$'
+
+# rebase_in_progress
+#   Reports whether Git is in the middle of a rebase.
+#   Arguments: none
+#   Returns: 0 if a rebase is in progress
+rebase_in_progress() {
+    local git_dir
+    git_dir="$(git rev-parse --git-dir)"
+    [[ -d "${git_dir}/rebase-merge" || -d "${git_dir}/rebase-apply" ]]
+}
+
+# explain_conflicts
+#   Prints what to do when the rebase stops on a conflict.
+#   Arguments: $1 backup branch name
+#   Returns: 1 always, so callers can `return` it
+explain_conflicts() {
+    say "The rebase stopped on a conflict"
+    git status --short | grep -E '^(UU|AA|DU|UD|AU|UA|DD) ' || true
+    cat <<EOF
+
+Resolve each file (Unity scenes and prefabs: git mergetool), then:
+  git add <file>          mark it resolved
+  sv-rebase --continue    carry on and finish
+
+To give up and return to where you started:
+  git rebase --abort      (your work is also saved in $1)
+EOF
+    return 1
+}
+
+# finish
+#   Shows the new history and offers to push it with --force-with-lease.
+#   Arguments: $1 base branch
+#   Returns: 0 always
+finish() {
+    local branch reply
+    branch="$(git branch --show-current)"
+    say "Your commits now sit on top of origin/$1"
+    git log --oneline --graph -15
+    if ! git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
+        echo "This branch isn't on GitHub yet; a plain 'git push' publishes it."
+        return 0
+    fi
+    echo
+    echo "Build and run the tests before pushing."
+    read -r -p "Push ${branch} with --force-with-lease now? [y/N] " reply
+    if [[ "${reply}" =~ ^[Yy] ]]; then
+        git push --force-with-lease
+    else
+        echo "Later: git push --force-with-lease"
+    fi
+}
+
+# main
+#   Runs the safe rebase, or continues one that stopped on a conflict.
+#   Arguments: $1 base branch or --continue
+#   Returns: 0 on success, 1 when conflicts need resolving
+main() {
+    require_repo
+    local base backup branch
+
+    if [[ "${1:-}" == --continue ]]; then
+        rebase_in_progress || die "No rebase in progress."
+        branch="$(cat "$(git rev-parse --git-dir)/rebase-merge/head-name" 2>/dev/null || true)"
+        if ! GIT_EDITOR=true git rebase --continue; then
+            explain_conflicts "backup/${branch#refs/heads/}"
+            exit 1
+        fi
+        git fetch --quiet origin
+        finish "$(integration_branch "")"
+        return 0
+    fi
+
+    rebase_in_progress && die "A rebase is already in progress: resolve it, then run sv-rebase --continue."
+    branch="$(git branch --show-current)"
+    [[ -n "${branch}" ]] || die "You are not on a branch (detached HEAD)."
+    [[ ! "${branch}" =~ ${PROTECTED_RE} ]] \
+        || die "Never rebase ${branch}; only rebase your own feature branches."
+
+    say "1. Checking the working tree is clean"
+    require_clean_tree
+
+    say "2. Saving a backup of ${branch}"
+    backup="backup/${branch}"
+    git show-ref --verify --quiet "refs/heads/${backup}" && backup="${backup}-$(date +%Y%m%d-%H%M%S)"
+    git branch "${backup}"
+    echo "Saved as ${backup} (delete it when you're happy: git branch -D ${backup})"
+
+    say "3. Fetching the latest from GitHub"
+    git fetch origin
+    base="$(integration_branch "${1:-}")"
+
+    say "4. Rebasing ${branch} onto origin/${base}"
+    if ! git rebase "origin/${base}"; then
+        explain_conflicts "${backup}"
+        exit 1
+    fi
+    finish "${base}"
+}
+
+main "$@"

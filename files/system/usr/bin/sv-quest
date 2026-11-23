@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+#
+# sv-quest
+#
+# Purpose:
+#   Speeds up the VR build-and-test loop on Meta Quest headsets (and works
+#   for any Android or WearOS device): lists devices, switches a headset to
+#   wireless debugging, installs a build, launches it and follows its log
+#   filtered to Unity and crash output.
+#
+# Usage:
+#   sv-quest devices                 Connected devices with model and battery.
+#   sv-quest wifi                    Switch the USB-connected headset to
+#                                    wireless debugging (then unplug it).
+#   sv-quest connect <ip>            Reconnect to a headset over Wi-Fi.
+#   sv-quest install <file.apk>      Install (or update) a build.
+#   sv-quest run <file.apk>          Install, launch and follow the log.
+#   sv-quest launch <package>        Launch an installed app.
+#   sv-quest log [package]           Follow Unity, crash and app output.
+#   With several devices connected, pick one with ANDROID_SERIAL=<serial>.
+#
+# Requirements:
+#   The headset in developer mode, with USB debugging allowed for this
+#   computer (put the headset on and accept the prompt the first time).
+#
+# Exit codes:
+#   0 on success, 1 on failure, 64 on bad usage.
+
+set -euo pipefail
+
+readonly ADB_PORT=5555
+readonly LAST_PACKAGE_FILE="${XDG_CACHE_HOME:-${HOME}/.cache}/sv-quest/last-package"
+
+# die
+#   Prints an error and exits.
+#   Arguments: message words
+#   Returns: does not return
+die() {
+    printf '\033[1;31mError:\033[0m %s\n' "$*" >&2
+    exit 1
+}
+
+# require_device
+#   Makes sure exactly one usable device is selected, explaining the usual
+#   problems (no device, not authorized, several connected).
+#   Arguments: none
+#   Returns: does not return if no single usable device is available
+require_device() {
+    [[ -n "${ANDROID_SERIAL:-}" ]] && return 0
+    local -a ready unauthorized
+    mapfile -t ready < <(adb devices | awk 'NR > 1 && $2 == "device" {print $1}')
+    mapfile -t unauthorized < <(adb devices | awk 'NR > 1 && $2 == "unauthorized" {print $1}')
+    if (( ${#ready[@]} == 0 )); then
+        (( ${#unauthorized[@]} )) && die "Put the headset on and allow USB debugging for this computer, then try again."
+        die "No device found. Connect the headset by USB (developer mode on), or: sv-quest connect <ip>"
+    fi
+    if (( ${#ready[@]} > 1 )); then
+        echo "Several devices are connected:" >&2
+        cmd_devices >&2
+        die "Choose one: ANDROID_SERIAL=<serial> sv-quest $*"
+    fi
+}
+
+# third_party_packages
+#   Lists the packages of apps the user installed (not system apps).
+#   Arguments: none
+#   Output: package names, one per line, sorted
+#   Returns: adb's exit status
+third_party_packages() {
+    adb shell pm list packages -3 | sed 's/^package://' | tr -d '\r' | sort
+}
+
+# cmd_devices
+#   Shows connected devices with their model and battery level.
+#   Arguments: none
+#   Returns: 0 always
+cmd_devices() {
+    local serial state model battery
+    printf '%-24s %-14s %-22s %s\n' SERIAL STATE MODEL BATTERY
+    while read -r serial state; do
+        model="" battery=""
+        if [[ "${state}" == device ]]; then
+            model="$(adb -s "${serial}" shell getprop ro.product.model 2>/dev/null | tr -d '\r')"
+            battery="$(adb -s "${serial}" shell dumpsys battery 2>/dev/null | awk -F': ' '/level/ {print $2 "%"; exit}' | tr -d '\r')"
+        fi
+        printf '%-24s %-14s %-22s %s\n' "${serial}" "${state}" "${model}" "${battery}"
+    done < <(adb devices | awk 'NR > 1 && NF >= 2 {print $1, $2}')
+}
+
+# cmd_wifi
+#   Switches the USB-connected device to wireless debugging and connects to
+#   it, so the cable can be removed.
+#   Arguments: none
+#   Returns: 0 on success
+cmd_wifi() {
+    require_device wifi
+    local ip
+    ip="$(adb shell ip -f inet addr show wlan0 | awk '/inet / {print $2}' | cut -d/ -f1 | tr -d '\r')"
+    [[ -n "${ip}" ]] || die "The headset isn't on Wi-Fi."
+    adb tcpip "${ADB_PORT}" >/dev/null
+    sleep 2
+    adb connect "${ip}:${ADB_PORT}"
+    echo "Connected over Wi-Fi. Unplug the cable. Next time: sv-quest connect ${ip}"
+}
+
+# cmd_install
+#   Installs or updates an APK, keeping its data and granting its declared
+#   permissions so a test run doesn't stop at permission prompts.
+#   Arguments: $1 path to the APK
+#   Output: the package name that was installed or updated, if it can tell
+#   Returns: non-zero if the install fails
+cmd_install() {
+    local apk="${1:-}" before after package
+    [[ -f "${apk}" ]] || die "No such file: ${apk:-<file.apk>}"
+    require_device install
+    before="$(third_party_packages)"
+    echo "Installing $(basename "${apk}")..." >&2
+    adb install -r -g "${apk}" >&2
+    after="$(third_party_packages)"
+    package="$(comm -13 <(echo "${before}") <(echo "${after}") | head -n1)"
+    # An update of an app that was already installed adds no new package,
+    # so fall back to the last app installed with this tool.
+    [[ -n "${package}" ]] || package="$(cat "${LAST_PACKAGE_FILE}" 2>/dev/null || true)"
+    if [[ -n "${package}" ]]; then
+        mkdir -p "$(dirname "${LAST_PACKAGE_FILE}")"
+        echo "${package}" > "${LAST_PACKAGE_FILE}"
+        echo "${package}"
+    fi
+}
+
+# cmd_launch
+#   Starts an installed app's launcher activity.
+#   Arguments: $1 package name
+#   Returns: non-zero if the app can't be started
+cmd_launch() {
+    local package="${1:-}" activity
+    [[ -n "${package}" ]] || die "Usage: sv-quest launch <package>"
+    require_device launch
+    activity="$(adb shell cmd package resolve-activity --brief -c android.intent.category.LAUNCHER "${package}" | tail -n1 | tr -d '\r')"
+    if [[ "${activity}" == */* ]]; then
+        adb shell am start -n "${activity}" >/dev/null
+    else
+        # VR apps sometimes have no standard launcher entry; monkey starts
+        # whatever entry point the app declares.
+        adb shell monkey -p "${package}" 1 >/dev/null 2>&1 || die "Could not launch ${package}."
+    fi
+    echo "Launched ${package}"
+}
+
+# cmd_log
+#   Follows the device log, limited to Unity output, crashes and (when a
+#   package is given) that app's own messages.
+#   Arguments: $1 optional package name
+#   Returns: when the user stops it with Ctrl-C
+cmd_log() {
+    local package="${1:-}" pid=""
+    require_device log
+    adb logcat -c
+    if [[ -n "${package}" ]]; then
+        pid="$(adb shell pidof -s "${package}" 2>/dev/null | tr -d '\r' || true)"
+    fi
+    echo "Following the log (Ctrl-C to stop)..."
+    if [[ -n "${pid}" ]]; then
+        adb logcat -v color --pid="${pid}" '*:I'
+    else
+        adb logcat -v color Unity:V AndroidRuntime:E DEBUG:V libc:F CRASH:E '*:S'
+    fi
+}
+
+# main
+#   Dispatches the subcommand.
+#   Arguments: see Usage
+#   Returns: the subcommand's status, or 64 on bad usage
+main() {
+    command -v adb >/dev/null || die "adb is not installed."
+    local cmd="${1:-}"
+    shift || true
+    case "${cmd}" in
+        devices) adb start-server >/dev/null 2>&1; cmd_devices ;;
+        wifi) cmd_wifi ;;
+        connect) [[ -n "${1:-}" ]] || die "Usage: sv-quest connect <ip>"
+                 adb connect "${1%:*}:${ADB_PORT}" ;;
+        install) cmd_install "$@" >/dev/null ;;
+        run)
+            local package
+            package="$(cmd_install "$@")"
+            [[ -n "${package}" ]] || die "Installed, but couldn't tell the package name; use: sv-quest launch <package>"
+            cmd_launch "${package}"
+            sleep 2
+            cmd_log "${package}"
+            ;;
+        launch) cmd_launch "$@" ;;
+        log) cmd_log "$@" ;;
+        ""|-h|--help|help) sed -n '/^# Usage:/,/^#$/p' "$0" | sed 's/^# \{0,3\}//' ;;
+        *) echo "Unknown command: ${cmd}. See: sv-quest help" >&2; exit 64 ;;
+    esac
+}
+
+main "$@"
