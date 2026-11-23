@@ -113,6 +113,12 @@ Treat everything below as unverified until you have checked it.
   `files/system/usr/share/shatteredvales/theme/shell-overrides.css.in` and
   the dconf extension keys, and test on hardware before merging.
 - Never commit `cosign.key`, `secrets.env`, password hashes or Tailscale keys.
+- Builds from `main` publish only `:testing` (`alt-tags` in both recipes).
+  `:latest` moves only through `.github/workflows/promote.yml`, which
+  verifies the signature and re-tags by digest. Never make CI push `:latest`
+  directly; that would skip the canary week for every workstation.
+- System-wide defaults that users may override go in `/etc` config files
+  (`/etc/gitconfig`, dconf `local.d`), never into users' home folders.
 
 ## Code standards (organization policy)
 

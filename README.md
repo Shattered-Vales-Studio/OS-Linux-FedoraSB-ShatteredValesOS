@@ -17,6 +17,24 @@ drivers). Verify a pulled image with the committed key:
 cosign verify --key cosign.pub ghcr.io/shattered-vales-studio/shatteredvales-os:latest
 ```
 
+## Release channels
+
+| Tag | Who runs it | Updated |
+|---|---|---|
+| `:testing` | One or two canary machines | Every build from `main` (nightly) |
+| `:latest` | Every other workstation | Weekly (Tuesdays) by the *promote-images* workflow, or on demand |
+| `:stable-YYYYMMDD` | Nobody directly; rollback points | Each promotion |
+
+Promotion re-tags the already-signed `:testing` image after verifying its
+signature; nothing is rebuilt. To **hold** promotions while investigating a
+problem, set the repository variable `PAUSE_PROMOTION` to `true`. To **roll
+back** the whole studio, run *promote-images* manually with `source` set to
+an earlier `stable-YYYYMMDD` tag. A single machine can always go back with
+`rpm-ostree rollback`.
+
+To make a machine a canary, use the `:testing` tag in the rebase commands
+below; `sv-gpu-image apply` keeps whichever tag a machine is on.
+
 ## Moving an existing Silverblue machine onto the image
 
 No reinstall needed. Check which image the hardware needs, then:
@@ -67,9 +85,20 @@ separate private repo because it holds secrets).
 - **Per user at first login:** Claude Code, Rust (rustup), JetBrains Toolbox
   (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global
   prefix in `~/.local` so `npm install -g` works on the read-only system.
+- **GitHub setup:** *GitHub Setup* in the app grid (or `sv-github setup`)
+  follows the studio guides: Git identity, GitHub CLI sign-in, an SSH key
+  uploaded with `gh`, and `~/Source`. `sv-github add-profile <alias>` adds a
+  second GitHub account per *Managing Multiple GitHub SSH Keys*;
+  `sv-github clone <alias> <owner/repo>` and `sv-github use <alias>` apply it.
+- **Git defaults:** `/etc/gitconfig` holds the settings from the *Daily Git
+  Terminal Workflow* guide, Git LFS, and Unity Smart Merge for whichever
+  Unity editor is installed. Users' own `git config --global` still wins.
+- **Browsers:** Firefox and Chromium show a managed *Shattered Vales*
+  bookmarks folder (website, guides, staff resources) on the toolbar.
 - **Desktop:** bottom dock, logo menu top left, clock and tray icons top right,
   window buttons on the left, branded boot, login and lock screens in the
-  website's black and gold (Cinzel and Lato fonts, gold-foil artwork).
+  website's black and gold (Cinzel, Lato and JetBrains Mono, gold-foil
+  artwork).
 
 ## Useful commands on a workstation
 
@@ -78,6 +107,8 @@ separate private repo because it holds secrets).
 | `sv-gpu-image status` | Shows detected GPU and whether the right image is installed |
 | `sudo sv-gpu-image apply` | Switches to the matching image after a GPU change |
 | `sv-first-login` | Re-runs per-user setup (e.g. for SSH-only accounts) |
+| `sv-github setup` | Connects the account to GitHub (same as *GitHub Setup*) |
+| `sv-github list` | Shows GitHub profiles; `sv-github test [alias]` checks one |
 | `rpm-ostree rollback` | Boots the previous image if an update misbehaves |
 
 ## Developing

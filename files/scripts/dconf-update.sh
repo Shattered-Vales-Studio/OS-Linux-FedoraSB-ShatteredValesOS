@@ -54,6 +54,7 @@ main() {
         | xargs -0 -r sed -i \
             -e "s|@BRAND_GNOME_ACCENT@|${BRAND_GNOME_ACCENT}|g" \
             -e "s|@BRAND_FONT_FAMILY@|${BRAND_FONT_FAMILY}|g" \
+            -e "s|@BRAND_MONO_FONT_FAMILY@|${BRAND_MONO_FONT_FAMILY}|g" \
             -e "s|@BRAND_BG@|${BRAND_BG}|g"
 
     # The user db must come first so personal changes override defaults.

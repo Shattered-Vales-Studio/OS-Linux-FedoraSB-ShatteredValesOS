@@ -20,6 +20,7 @@ color-scheme='prefer-dark'
 accent-color='@BRAND_GNOME_ACCENT@'
 font-name='@BRAND_FONT_FAMILY@ 11'
 document-font-name='@BRAND_FONT_FAMILY@ 11'
+monospace-font-name='@BRAND_MONO_FONT_FAMILY@ 11'
 clock-format='12h'
 clock-show-weekday=true
 

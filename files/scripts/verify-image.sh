@@ -33,6 +33,14 @@ readonly REQUIRED_PATHS=(
     /usr/bin/node
     /usr/share/fonts/google-fonts/Cinzel
     /usr/share/fonts/google-fonts/Lato
+    "/usr/share/fonts/google-fonts/JetBrains Mono"
+    # Studio Git defaults, GitHub setup and managed browser bookmarks.
+    /etc/gitconfig
+    /usr/bin/sv-github
+    /usr/bin/unityyamlmerge
+    /usr/share/applications/shatteredvales-github-setup.desktop
+    /etc/firefox/policies/policies.json
+    /etc/chromium/policies/managed/shatteredvales-bookmarks.json
     # Desktop files referenced by favorite-apps in the dconf defaults.
     /usr/share/applications/org.mozilla.firefox.desktop
     /usr/share/applications/net.thunderbird.Thunderbird.desktop

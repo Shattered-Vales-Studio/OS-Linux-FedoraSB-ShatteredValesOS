@@ -1,0 +1,50 @@
+# Studio-wide Git defaults for every account on the workstation.
+# These are the settings from the studio guides at
+# https://shatteredvales.studio/guide/ ("Daily Git Terminal Workflow",
+# Step 1, and "Managing Game Assets with Git LFS", Steps 2 and 7).
+# They are system defaults only: anything a user sets with
+# `git config --global` takes precedence. Identity (user.name and
+# user.email) is set per user by `sv-github setup`.
+
+[init]
+	defaultBranch = main
+
+[pull]
+	# Replay local commits on top of the remote instead of merge commits.
+	rebase = true
+
+[rebase]
+	autoStash = true
+
+[push]
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+
+[merge]
+	# Conflict markers include the original text, which makes them readable.
+	conflictStyle = zdiff3
+	# Unity Smart Merge for scenes and prefabs; the wrapper finds whichever
+	# editor version Unity Hub installed.
+	tool = unityyamlmerge
+
+[mergetool "unityyamlmerge"]
+	trustExitCode = false
+	cmd = unityyamlmerge merge -p "$BASE" "$REMOTE" "$LOCAL" "$MERGED"
+
+[rerere]
+	enabled = true
+
+[core]
+	# Mixed Windows/macOS/Linux teams: store LF, never rewrite on checkout.
+	autocrlf = input
+	editor = nano
+
+# Git LFS filters, equivalent to `git lfs install --system`, so LFS works in
+# every clone from the first login without any per-user step.
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

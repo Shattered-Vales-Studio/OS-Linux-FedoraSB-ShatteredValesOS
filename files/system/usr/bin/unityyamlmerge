@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# unityyamlmerge
+#
+# Purpose:
+#   Runs Unity's Smart Merge tool (UnityYAMLMerge) from the newest Unity
+#   editor that Unity Hub has installed for the current user. Git's
+#   mergetool configuration in /etc/gitconfig calls this wrapper, so Smart
+#   Merge keeps working when editors are added or removed and nobody has to
+#   edit a version-specific path into their Git config.
+#
+# Usage:
+#   unityyamlmerge <UnityYAMLMerge arguments>
+#   (normally invoked by `git mergetool`, never directly)
+#
+# Exit codes:
+#   UnityYAMLMerge's own exit status, or 1 if no Unity editor is installed.
+
+set -euo pipefail
+
+# find_tool
+#   Prints the path to UnityYAMLMerge from the highest installed editor
+#   version, checking Unity Hub's default location and any custom install
+#   location the user chose in Unity Hub.
+#   Arguments: none
+#   Output: absolute path on stdout
+#   Returns: 1 if no editor with UnityYAMLMerge is installed
+find_tool() {
+    local -a roots=("${HOME}/Unity/Hub/Editor")
+    local custom="${XDG_CONFIG_HOME:-${HOME}/.config}/UnityHub/secondaryInstallPath.json"
+    if [[ -s "${custom}" ]]; then
+        local path
+        path="$(jq -r 'if type == "string" then . else empty end' "${custom}" 2>/dev/null || true)"
+        [[ -n "${path}" ]] && roots+=("${path}")
+    fi
+
+    local root
+    for root in "${roots[@]}"; do
+        [[ -d "${root}" ]] || continue
+        find "${root}" -mindepth 5 -maxdepth 5 -path '*/Editor/Data/Tools/UnityYAMLMerge' -type f 2>/dev/null
+    done | sort -V | tail -n 1 | grep .
+}
+
+# main
+#   Locates UnityYAMLMerge and replaces this process with it.
+#   Arguments: passed through to UnityYAMLMerge
+#   Returns: does not return on success; 1 if no editor is installed
+main() {
+    local tool
+    if ! tool="$(find_tool)"; then
+        echo "UnityYAMLMerge not found. Install a Unity editor with Unity Hub first." >&2
+        exit 1
+    fi
+    exec "${tool}" "$@"
+}
+
+main "$@"

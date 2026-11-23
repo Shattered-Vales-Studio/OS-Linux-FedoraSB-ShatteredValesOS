@@ -132,6 +132,23 @@ step_jetbrains_toolbox() {
     notify "JetBrains Toolbox installed" "Use it to install Rider and other JetBrains IDEs"
 }
 
+# step_source_dir
+#   Creates ~/Source, the studio's folder for repositories (see "Your First
+#   Day" Step 6).
+#   Returns: mkdir exit status
+step_source_dir() {
+    mkdir -p "${HOME}/Source"
+}
+
+# step_github_reminder
+#   Points new users at GitHub Setup once, unless they already have a key.
+#   Returns: 0 always
+step_github_reminder() {
+    if [[ ! -f "${HOME}/.ssh/id_ed25519" ]]; then
+        notify "Connect to GitHub" "Open GitHub Setup from the app grid, or run: sv-github setup"
+    fi
+}
+
 # main
 #   Runs every pending per-user setup step and logs to the state directory.
 #   Arguments: none
@@ -146,6 +163,8 @@ main() {
     run_step npm-prefix-v1 step_npm_prefix || failed=1
     run_step rustup-v1 step_rustup || failed=1
     run_step jetbrains-toolbox-v1 step_jetbrains_toolbox || failed=1
+    run_step source-dir-v1 step_source_dir || failed=1
+    run_step github-reminder-v1 step_github_reminder || failed=1
 
     if (( failed )); then
         notify "Workstation setup incomplete" "See ${LOG_FILE}. It will retry at next login."
