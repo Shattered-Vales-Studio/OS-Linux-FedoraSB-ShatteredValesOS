@@ -1,5 +1,5 @@
 [Unit]
-Description=Grant workstation users access to Docker
+Description=Grant workstation users access to Docker and libvirt
 After=systemd-sysusers.service
 Before=display-manager.service
 

@@ -54,11 +54,15 @@ separate private repo because it holds secrets).
   - Graphics and performance: RenderDoc, Vulkan tools and validation layers,
     MangoHud, GameMode
   - Android, WearOS and XR: adb/fastboot, OpenXR, Monado
-  - Desktop apps: GTK 3, WebKitGTK and app-indicator headers (Tauri ready)
+  - Desktop apps: GTK 3, WebKitGTK and app-indicator headers (Tauri ready),
+    MinGW Windows cross-compilers, flatpak-builder, rpm-build
+  - Virtual machines: virt-manager with QEMU/KVM (users are added to the
+    `libvirt` group at boot)
 - **Flatpaks on first boot:** Steam, Bitwarden, OBS, Remmina (RDP), Extension
   Manager, Flatseal, Blender, Krita, GIMP, Inkscape, Audacity, Godot (.NET),
   Android Studio, WiVRn (PC VR streaming to Quest), Postman, DBeaver,
-  Qt Creator, Podman Desktop. The first boot downloads several GB, so allow time on a fresh
+  Qt Creator, Podman Desktop, BoxBuddy, Tiled, F3D, Flameshot, Parsec, Slack,
+  Discord. The first boot downloads several GB, so allow time on a fresh
   install.
 - **Per user at first login:** Claude Code, Rust (rustup), JetBrains Toolbox
   (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global

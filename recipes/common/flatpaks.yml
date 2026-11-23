@@ -32,3 +32,15 @@ modules:
           - io.qt.QtCreator
           # GUI for Podman (in the base) and the Docker Engine socket.
           - io.podman_desktop.PodmanDesktop
+          # GUI for the Distrobox in the base image, for Ubuntu-only SDKs.
+          - io.github.dvlv.boxbuddyrs
+          # Game asset and level tools
+          - org.mapeditor.Tiled
+          - io.github.f3d_app.f3d
+          # Annotated screenshots for bug reports and QA
+          - org.flameshot.Flameshot
+          # Remote playtesting
+          - com.parsecgaming.parsec
+          # Team communication
+          - com.slack.Slack
+          - com.discordapp.Discord

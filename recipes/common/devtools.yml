@@ -63,3 +63,20 @@ modules:
         - libayatana-appindicator-gtk3-devel
         - librsvg2-devel
         - openssl-devel
+
+        # Windows cross-compilers, so desktop apps can ship .exe builds from
+        # Linux (C, C++, and Rust/Tauri via the x86_64-pc-windows-gnu target).
+        - mingw64-gcc
+        - mingw64-gcc-c++
+        - mingw64-winpthreads-static
+
+        # Packaging our own Linux desktop apps.
+        - flatpak-builder
+        - rpm-build
+
+        # Local VMs for testing apps on Windows and other distros, and for
+        # testing new builds of this OS image. Fedora's presets enable the
+        # libvirt sockets; ensure-groups.sh adds users to the libvirt group.
+        - virt-manager
+        - libvirt-daemon-kvm
+        - qemu-kvm

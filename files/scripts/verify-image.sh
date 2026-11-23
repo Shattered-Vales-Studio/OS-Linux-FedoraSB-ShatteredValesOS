@@ -21,6 +21,8 @@ readonly REQUIRED_RPMS=(
     android-tools openxr monado dotnet-sdk-10.0
     nodejs26 nodejs26-npm pnpm chromium gh pipx uv
     webkit2gtk4.1-devel gtk3-devel libayatana-appindicator-gtk3-devel
+    mingw64-gcc mingw64-gcc-c++ flatpak-builder rpm-build
+    virt-manager libvirt-daemon-kvm qemu-kvm
 )
 
 readonly REQUIRED_PATHS=(
