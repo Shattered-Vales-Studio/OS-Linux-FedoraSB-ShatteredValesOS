@@ -69,13 +69,19 @@ render_inside() {
     #   Writes a copy of the logo whose fill is the foil gradient. The
     #   gradient spans the full 0..viewBox width, matching the site, where
     #   the gradient covers the logo element's whole box through a mask.
-    #   Arguments: $1 output path
+    #   Arguments: $1 output path, $2 optional space-separated stop colours
+    #              (default: the gold BRAND_FOIL_STOPS)
     #   Returns: 0 on success
     foil_svg() {
-        local width offsets="" i n=${#stops[@]}
+        local width offsets="" i n
+        local -a use=("${stops[@]}")
+        if [[ -n "${2:-}" ]]; then
+            read -r -a use <<<"$2"
+        fi
+        n=${#use[@]}
         width="$(grep -oE 'viewBox="[^"]+"' "${src}/logo.svg" | awk '{print $3}')"
         for (( i = 0; i < n; i++ )); do
-            offsets+="<stop offset=\"$(( i * 100 / (n - 1) ))%\" stop-color=\"${stops[i]}\"/>"
+            offsets+="<stop offset=\"$(( i * 100 / (n - 1) ))%\" stop-color=\"${use[i]}\"/>"
         done
         sed -e '/^<!--/d' \
             -e "s|<g>|<defs><linearGradient id=\"foil\" gradientUnits=\"userSpaceOnUse\" x1=\"0\" y1=\"0\" x2=\"${width}\" y2=\"0\">${offsets}</linearGradient></defs><g>|" \
@@ -160,6 +166,8 @@ SVG
              "${out}/usr/share/icons/hicolor/scalable/apps"
 
     foil_svg "${tmp}/logo-foil.svg"
+    foil_svg "${tmp}/logo-admin.svg" "${BRAND_ADMIN_FOIL_STOPS}"
+    rsvg-convert -h 1024 "${tmp}/logo-admin.svg" -o "${tmp}/logo-admin-1024.png"
     local h
     for h in 1024 512 256 192; do
         rsvg-convert -h "${h}" "${tmp}/logo-foil.svg" -o "${tmp}/logo-${h}.png"
@@ -211,13 +219,19 @@ SVG
         -background none -gravity center +append -resize x96 \
         "${out}/usr/share/pixmaps/shatteredvales-gdm-logo.png"
 
-    # Default account picture: the logo on the site's page gradient. GNOME
-    # crops account pictures to a circle, so the mark stays inside the
-    # inscribed circle with room to spare.
-    magick -size 512x512 -define gradient:radii=256,256 \
-        "radial-gradient:${BRAND_BG_GLOW}-${BRAND_BG}" \
-        \( "${tmp}/logo-1024.png" -trim +repage -resize 300x300 \) \
-        -gravity center -composite "${out}/usr/share/shatteredvales/avatar.png"
+    # Default account pictures: the logo on the site's page gradient, gold
+    # for everyday accounts and red for administrators, so the user list
+    # shows at a glance which accounts can change the computer. GNOME crops
+    # account pictures to a circle, so the mark stays inside the inscribed
+    # circle with room to spare.
+    local avatar logo
+    for avatar in avatar:logo-1024.png avatar-admin:logo-admin-1024.png; do
+        logo="${avatar#*:}"
+        magick -size 512x512 -define gradient:radii=256,256 \
+            "radial-gradient:${BRAND_BG_GLOW}-${BRAND_BG}" \
+            \( "${tmp}/${logo}" -trim +repage -resize 300x300 \) \
+            -gravity center -composite "${out}/usr/share/shatteredvales/${avatar%%:*}.png"
+    done
 
     cp "${src}/logo-symbolic.svg" "${out}/usr/share/pixmaps/shatteredvales-logo-symbolic.svg"
     cp "${tmp}/logo-foil.svg" "${out}/usr/share/icons/hicolor/scalable/apps/shatteredvales-logo.svg"

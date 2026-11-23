@@ -285,23 +285,43 @@ sys.exit(0 if pixels[3] == 0 else 1)
 PY
 }
 
-# step_user_icon
-#   Sets the studio logo as the account picture when the user has none or
-#   only GNOME's generated initials avatar. Pictures the user chose are kept.
-#   AccountsService copies the file, so the user can change it later in
-#   Settings > Users as usual.
+# is_admin
+#   Tells whether this account is an administrator (a member of wheel).
+#   Arguments: none
+#   Returns: 0 for administrators, 1 otherwise
+is_admin() {
+    id -nG | tr ' ' '\n' | grep -qx wheel
+}
+
+# sync_user_icon
+#   Gives the account the studio logo as its picture when it has none, only
+#   GNOME's generated initials avatar, or one of the studio's own defaults:
+#   red for administrators, gold for everyone else, so the login screen
+#   shows which accounts can change the computer. Runs at every login so the
+#   colour follows the account when it is made or unmade an administrator.
+#   Pictures the user chose are never replaced.
+#   Arguments: none
 #   Returns: 0 when the picture is set or kept, 1 if setting it failed
-step_user_icon() {
-    local user_path icon
+sync_user_icon() {
+    local user_path icon default=/usr/share/shatteredvales/avatar.png
+    local admin=/usr/share/shatteredvales/avatar-admin.png picture
     user_path="$(busctl --system call org.freedesktop.Accounts /org/freedesktop/Accounts \
         org.freedesktop.Accounts FindUserById x "$(id -u)" | cut -d'"' -f2)" || return 1
     icon="$(busctl --system get-property org.freedesktop.Accounts "${user_path}" \
         org.freedesktop.Accounts.User IconFile | cut -d'"' -f2)" || return 1
-    if [[ -s "${icon}" ]] && ! is_generated_avatar "${icon}"; then
-        return 0
+    picture="${default}"
+    is_admin && picture="${admin}"
+    # AccountsService stores a copy, so the current picture is compared by
+    # content with the defaults rather than by path.
+    if [[ -s "${icon}" ]]; then
+        cmp -s "${icon}" "${picture}" && return 0
+        if ! cmp -s "${icon}" "${default}" && ! cmp -s "${icon}" "${admin}" \
+            && ! is_generated_avatar "${icon}"; then
+            return 0
+        fi
     fi
     busctl --system call org.freedesktop.Accounts "${user_path}" \
-        org.freedesktop.Accounts.User SetIconFile s /usr/share/shatteredvales/avatar.png
+        org.freedesktop.Accounts.User SetIconFile s "${picture}" >/dev/null
 }
 
 # step_unity_cli
@@ -414,10 +434,10 @@ main() {
     run_step github-reminder-v1 step_github_reminder || failed=1
     run_step source-bookmark-v1 step_source_bookmark || failed=1
     run_step file-templates-v1 step_file_templates || failed=1
-    run_step user-icon-v1 step_user_icon || failed=1
     # Last, because it downloads about 1 GB.
     run_step artcraft-apps-v1 step_artcraft_apps || failed=1
     sync_share_bookmarks
+    sync_user_icon || failed=1
 
     if (( failed )); then
         notify "Workstation setup incomplete" "See ${LOG_FILE}. It will retry at next login."
