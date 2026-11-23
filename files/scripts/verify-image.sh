@@ -76,9 +76,12 @@ readonly REQUIRED_PATHS=(
     /usr/bin/sv-gpu-image
     /usr/libexec/shatteredvales/first-login.sh
     /etc/xdg/autostart/shatteredvales-first-login.desktop
+    # Creates the docker group on machines that rebase onto the image.
+    /usr/lib/sysusers.d/shatteredvales.conf
     /usr/share/plymouth/themes/shatteredvales/watermark.png
     /usr/share/backgrounds/shatteredvales/wallpaper.png
     /usr/share/shatteredvales/lockscreen-header.png
+    /usr/share/shatteredvales/avatar.png
     /etc/dconf/db/local
     /etc/dconf/db/gdm
 )

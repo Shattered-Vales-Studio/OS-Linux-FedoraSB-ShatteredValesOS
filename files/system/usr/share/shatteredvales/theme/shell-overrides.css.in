@@ -50,14 +50,22 @@
 /*
  * Lock screen: logo and company name rendered as one image above the clock.
  * The header is drawn as the clock container's background so it stays
- * centered with the clock at every resolution. The PNG is rendered at 2x
- * (960x440) and scaled down here so it stays sharp on HiDPI displays.
+ * centered with the clock at every resolution and scale.
+ *
+ * St accepts only pixel lengths for background-position (keywords such as
+ * "center top" are ignored) and otherwise centers the image on the widget.
+ * So the container gets a fixed min-height, and the PNG is a canvas of that
+ * same size with the 480x220 header at its top and transparency below:
+ * centered, it lines up with the container's top edge. padding-top pushes
+ * the time below the header. min-height leaves room for the time, date and
+ * hint at up to 125% text scaling; keep it, background-size and the
+ * renderer's canvas (2x: 960x1280) in step.
  */
 .unlock-dialog-clock {
-  padding-top: 240px;
+  padding-top: 260px;
+  min-height: 640px;
   background-image: url("file:///usr/share/shatteredvales/lockscreen-header.png");
-  background-position: center top;
-  background-size: 480px 220px;
+  background-size: 480px 640px;
   background-repeat: no-repeat;
 }
 

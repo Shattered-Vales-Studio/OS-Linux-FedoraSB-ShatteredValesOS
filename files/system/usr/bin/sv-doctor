@@ -103,12 +103,21 @@ check_gpu() {
 }
 
 # check_disk
-#   Warns when the system or home filesystem is nearly full.
+#   Warns when the system or home filesystem is nearly full. / is a
+#   read-only composefs mount that always reports 100%, so the real system
+#   disk is measured at /sysroot. Home is reported separately only when it
+#   lives on a different filesystem.
 #   Arguments: none
 #   Returns: 0 always
 check_disk() {
     local mount used
-    for mount in / "${HOME}"; do
+    local -a mounts=(/sysroot)
+    # Compared by backing device, not stat's st_dev, which differs between
+    # btrfs subvolumes on the same disk.
+    if [[ "$(df --output=source /sysroot | tail -n1)" != "$(df --output=source "${HOME}" | tail -n1)" ]]; then
+        mounts+=("${HOME}")
+    fi
+    for mount in "${mounts[@]}"; do
         used="$(df --output=pcent "${mount}" | tail -n1 | tr -dc '0-9')"
         if (( used >= 95 )); then
             report FAIL "Disk ${mount}" "${used}% full; free space now (docker system prune, old Unity Library folders)"

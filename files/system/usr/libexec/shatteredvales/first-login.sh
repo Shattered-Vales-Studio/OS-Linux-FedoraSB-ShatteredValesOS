@@ -225,6 +225,50 @@ step_file_templates() {
     cp -n /usr/share/shatteredvales/templates/new-document/* "${templates}/"
 }
 
+# is_generated_avatar
+#   Tells a picture the user chose apart from the initials avatar GNOME
+#   Initial Setup generates. Generated avatars are drawn as a circle with
+#   transparent corners; photos and GNOME's stock pictures are opaque
+#   squares, which GNOME crops to a circle only when displaying them.
+#   Arguments: $1 path to the current account picture
+#   Returns: 0 if the picture is a generated initials avatar, 1 otherwise
+is_generated_avatar() {
+    python3 -I - "$1" <<'PY'
+import sys
+import gi
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf
+try:
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file(sys.argv[1])
+except Exception:
+    sys.exit(1)
+if not pixbuf.get_has_alpha():
+    sys.exit(1)
+pixels = pixbuf.get_pixels()
+# Alpha of the top-left pixel (RGBA, so byte 3).
+sys.exit(0 if pixels[3] == 0 else 1)
+PY
+}
+
+# step_user_icon
+#   Sets the studio logo as the account picture when the user has none or
+#   only GNOME's generated initials avatar. Pictures the user chose are kept.
+#   AccountsService copies the file, so the user can change it later in
+#   Settings > Users as usual.
+#   Returns: 0 when the picture is set or kept, 1 if setting it failed
+step_user_icon() {
+    local user_path icon
+    user_path="$(busctl --system call org.freedesktop.Accounts /org/freedesktop/Accounts \
+        org.freedesktop.Accounts FindUserById x "$(id -u)" | cut -d'"' -f2)" || return 1
+    icon="$(busctl --system get-property org.freedesktop.Accounts "${user_path}" \
+        org.freedesktop.Accounts.User IconFile | cut -d'"' -f2)" || return 1
+    if [[ -s "${icon}" ]] && ! is_generated_avatar "${icon}"; then
+        return 0
+    fi
+    busctl --system call org.freedesktop.Accounts "${user_path}" \
+        org.freedesktop.Accounts.User SetIconFile s /usr/share/shatteredvales/avatar.png
+}
+
 # step_unity_cli
 #   Installs the Unity CLI (`unity`) with Unity's official installer into
 #   ~/.local/bin. Per user because it updates itself (`unity self-update`).
@@ -304,6 +348,7 @@ main() {
     run_step github-reminder-v1 step_github_reminder || failed=1
     run_step source-bookmark-v1 step_source_bookmark || failed=1
     run_step file-templates-v1 step_file_templates || failed=1
+    run_step user-icon-v1 step_user_icon || failed=1
     # Last, because it downloads about 1 GB.
     run_step artcraft-apps-v1 step_artcraft_apps || failed=1
 
