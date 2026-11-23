@@ -164,6 +164,13 @@ separate private repo because it holds secrets).
   templates (README, Markdown, text, Unity C#, Godot, shell and Python
   scripts that follow the studio documentation standard). In a terminal,
   `cd <repo>` reaches any repository in `~/Source` from anywhere.
+- **Windows shares:** Windows PCs and NAS boxes appear under *Network* in
+  Files (the firewall allows WS-Discovery, UDP 3702). Any share opens with
+  *Other Locations* > *Connect to Server* and `smb://server/share`; tick
+  *Remember forever* to keep the password in your keyring. Shares listed in
+  `/etc/shatteredvales/network-shares` (one per line, `\\server\share` or
+  `smb://` form, optional sidebar name) are pinned in every user's Files
+  sidebar at login. Dolphin is installed for people who prefer it.
 - **Docker:** container logs rotate (3 files of 10 MB) instead of filling the disk.
 - **Terminal:** a Git-aware bash prompt with the branch in brand gold. Set
   `SV_PROMPT=0` to keep your own.

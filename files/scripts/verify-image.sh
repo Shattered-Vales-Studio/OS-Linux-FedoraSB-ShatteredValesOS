@@ -86,6 +86,8 @@ readonly REQUIRED_PATHS=(
     /usr/share/icons/hicolor/scalable/apps/shatteredvales-new-project.svg
     /usr/share/icons/hicolor/scalable/apps/shatteredvales-github-setup.svg
     /usr/bin/sv-box
+    /etc/firewalld/zones/FedoraWorkstation.xml
+    /etc/shatteredvales/network-shares
     /usr/share/applications/shatteredvales-update.desktop
     /usr/share/icons/hicolor/scalable/apps/shatteredvales-update.svg
     /usr/libexec/shatteredvales/signed-switch.sh

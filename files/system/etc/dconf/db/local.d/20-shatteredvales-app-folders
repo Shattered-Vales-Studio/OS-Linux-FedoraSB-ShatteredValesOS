@@ -61,7 +61,7 @@ categories=['InstantMessaging', 'Chat']
 [org/gnome/desktop/app-folders/folders/Utilities]
 name='X-GNOME-Shell-Utilities.directory'
 translate=true
-apps=['org.gnome.Connections.desktop', 'org.gnome.Papers.desktop', 'org.gnome.font-viewer.desktop', 'org.gnome.Loupe.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Characters.desktop', 'org.gnome.Calendar.desktop', 'org.gnome.FileRoller.desktop', 'org.flameshot.Flameshot.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Ptyxis.desktop', 'org.gnome.SimpleScan.desktop', 'com.bitwarden.desktop.desktop']
+apps=['org.gnome.Connections.desktop', 'org.gnome.Papers.desktop', 'org.gnome.font-viewer.desktop', 'org.gnome.Loupe.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Characters.desktop', 'org.gnome.Calendar.desktop', 'org.gnome.FileRoller.desktop', 'org.flameshot.Flameshot.desktop', 'org.gnome.Nautilus.desktop', 'org.kde.dolphin.desktop', 'org.gnome.Ptyxis.desktop', 'org.gnome.SimpleScan.desktop', 'com.bitwarden.desktop.desktop']
 
 [org/gnome/desktop/app-folders/folders/System]
 name='X-GNOME-Shell-System.directory'

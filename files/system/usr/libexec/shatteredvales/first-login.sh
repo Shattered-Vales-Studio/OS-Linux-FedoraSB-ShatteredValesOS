@@ -362,6 +362,35 @@ step_unity_mcp() {
     UNITY_NO_CONSENT_PROMPT=1 "${unity}" mcp configure claude --yes --non-interactive || return 1
 }
 
+# sync_share_bookmarks
+#   Adds the shares listed in /etc/shatteredvales/network-shares to the
+#   Files sidebar. Runs at every login rather than once, so shares an admin
+#   adds later reach existing users. Windows paths (\\server\share) are
+#   converted to smb:// addresses; bookmarks already present are left alone.
+#   Arguments: none
+#   Returns: 0 always
+sync_share_bookmarks() {
+    local list=/etc/shatteredvales/network-shares
+    local bookmarks="${XDG_CONFIG_HOME:-${HOME}/.config}/gtk-3.0/bookmarks"
+    local address name url
+    [[ -r "${list}" ]] || return 0
+    mkdir -p "$(dirname "${bookmarks}")"
+    touch "${bookmarks}"
+    while read -r address name; do
+        [[ -z "${address}" || "${address}" == \#* ]] && continue
+        if [[ "${address}" == \\\\* ]]; then
+            url="smb://$(sed -e 's#^\\\\##' -e 's#\\#/#g' <<<"${address}")"
+        else
+            url="${address}"
+        fi
+        # Compared as a whole first field, since addresses contain dots and
+        # other characters grep would treat as a pattern.
+        awk -v u="${url}" '$1 == u {found = 1} END {exit !found}' "${bookmarks}" && continue
+        echo "${url}${name:+ ${name}}" >> "${bookmarks}"
+        echo "Added share bookmark ${url}"
+    done < "${list}"
+}
+
 # main
 #   Runs every pending per-user setup step and logs to the state directory.
 #   Arguments: none
@@ -388,6 +417,7 @@ main() {
     run_step user-icon-v1 step_user_icon || failed=1
     # Last, because it downloads about 1 GB.
     run_step artcraft-apps-v1 step_artcraft_apps || failed=1
+    sync_share_bookmarks
 
     if (( failed )); then
         notify "Workstation setup incomplete" "See ${LOG_FILE}. It will retry at next login."
