@@ -44,12 +44,25 @@ separate private repo because it holds secrets).
 
 ## What's included
 
-- **In the image:** Firefox, Thunderbird, Tailscale, Docker Engine, Go,
-  Git LFS, VS Code, Unity Hub, Claude Desktop, ArtCraft Launcher, Bitwarden CLI, SSH server, codecs, and
-  for the NVIDIA image, prebuilt NVIDIA drivers.
+- **In the image:** Firefox, Thunderbird, Chromium, Tailscale, Docker Engine,
+  VS Code, Unity Hub, Claude Desktop, ArtCraft Launcher, Bitwarden CLI, SSH
+  server, codecs, and for the NVIDIA image, prebuilt NVIDIA drivers.
+- **Developer tooling in the image:**
+  - Version control: Git, Git LFS, Subversion, Perforce CLI (`p4`), GitHub CLI
+  - Toolchains: GCC, Clang, CMake, Ninja, Meson, GDB, LLDB, Go, .NET 10 SDK,
+    Node.js 26 LTS with npm and pnpm, Python with pipx and uv
+  - Graphics and performance: RenderDoc, Vulkan tools and validation layers,
+    MangoHud, GameMode
+  - Android, WearOS and XR: adb/fastboot, OpenXR, Monado
+  - Desktop apps: GTK 3, WebKitGTK and app-indicator headers (Tauri ready)
 - **Flatpaks on first boot:** Steam, Bitwarden, OBS, Remmina (RDP), Extension
-  Manager, Flatseal.
-- **Per user at first login:** Claude Code, Git LFS hooks.
+  Manager, Flatseal, Blender, Krita, GIMP, Inkscape, Audacity, Godot (.NET),
+  Android Studio, WiVRn (PC VR streaming to Quest), Postman, DBeaver,
+  Qt Creator. The first boot downloads several GB, so allow time on a fresh
+  install.
+- **Per user at first login:** Claude Code, Rust (rustup), JetBrains Toolbox
+  (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global
+  prefix in `~/.local` so `npm install -g` works on the read-only system.
 - **Desktop:** bottom dock, logo menu top left, clock and tray icons top right,
   window buttons on the left, branded boot, login and lock screens in the
   website's black and gold (Cinzel and Lato fonts, gold-foil artwork).

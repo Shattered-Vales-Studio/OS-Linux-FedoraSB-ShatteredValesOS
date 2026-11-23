@@ -16,11 +16,19 @@ readonly REQUIRED_RPMS=(
     tailscale docker-ce golang git git-lfs nano firefox thunderbird code unityhub
     claude-desktop-unofficial openssh-server
     gnome-shell-extension-dash-to-dock gnome-shell-extension-appindicator
+    subversion p4-cli gcc gcc-c++ cmake ninja-build clang gdb
+    renderdoc vulkan-tools vulkan-validation-layers mangohud gamemode
+    android-tools openxr monado dotnet-sdk-10.0
+    nodejs26 nodejs26-npm pnpm chromium gh pipx uv
+    webkit2gtk4.1-devel gtk3-devel libayatana-appindicator-gtk3-devel
 )
 
 readonly REQUIRED_PATHS=(
     /usr/bin/unityhub
     /usr/bin/artcraft-launcher
+    # p4-cli installs into /opt; this proves BlueBuild relocated it.
+    /usr/lib/opt/perforce/bin/p4
+    /usr/bin/node
     /usr/share/fonts/google-fonts/Cinzel
     /usr/share/fonts/google-fonts/Lato
     # Desktop files referenced by favorite-apps in the dconf defaults.

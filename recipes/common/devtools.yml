@@ -1,0 +1,65 @@
+---
+# Developer tooling for the studio's service lines: games, VR/AR,
+# Android/WearOS, web and desktop apps. Kept separate from packages.yml so
+# the system layer stays easy to read. Tools that update themselves (rustup,
+# JetBrains Toolbox) are installed per user by first-login.sh instead.
+modules:
+  - type: dnf
+    install:
+      packages:
+        # Version control. Git and Git LFS are in packages.yml; SVN is still
+        # common for binary-heavy art repos, and Perforce is the default on
+        # large game projects and for many publishers.
+        - subversion
+        - p4-cli
+
+        # Native toolchain for engines, plugins and desktop apps.
+        - gcc
+        - gcc-c++
+        - make
+        - cmake
+        - ninja-build
+        - meson
+        - clang
+        - lldb
+        - gdb
+
+        # Graphics debugging and performance (GameMode ships in the base).
+        - renderdoc
+        - vulkan-tools
+        - vulkan-validation-layers
+        - mangohud
+
+        # Android, WearOS and Meta Quest sideloading (adb, fastboot and the
+        # udev rules that let users reach devices without root).
+        - android-tools
+
+        # OpenXR loader and the Monado runtime for wired headsets.
+        - openxr
+        - openxr-libs
+        - monado
+
+        # .NET LTS for Unity and Godot C# tooling and VS Code C# support.
+        - dotnet-sdk-10.0
+
+        # Web: Node.js 26 is the current Active LTS (Fedora's default
+        # nodejs is still 22). Chromium covers cross-browser testing beside
+        # Firefox.
+        - nodejs26
+        - nodejs26-bin
+        - nodejs26-npm
+        - pnpm
+        - chromium
+        - gh
+
+        # Python tooling without touching the read-only system site-packages.
+        - python3-devel
+        - pipx
+        - uv
+
+        # Libraries Tauri and other GTK/WebKit desktop apps link against.
+        - webkit2gtk4.1-devel
+        - gtk3-devel
+        - libayatana-appindicator-gtk3-devel
+        - librsvg2-devel
+        - openssl-devel

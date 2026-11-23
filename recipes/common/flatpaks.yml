@@ -1,7 +1,7 @@
 ---
 # GUI apps installed from Flathub on first boot. Flatpaks update
 # independently of the image and keep their sandboxes, which suits
-# consumer apps better than layering them as RPMs.
+# consumer apps and large creative tools better than layering them as RPMs.
 modules:
   - type: default-flatpaks
     configurations:
@@ -14,3 +14,19 @@ modules:
           - org.remmina.Remmina
           - com.mattjakeman.ExtensionManager
           - com.github.tchx84.Flatseal
+          # Art, audio and engines
+          - org.blender.Blender
+          - org.kde.krita
+          - org.gimp.GIMP
+          - org.inkscape.Inkscape
+          - org.audacityteam.Audacity
+          # The .NET build of Godot also runs GDScript projects.
+          - org.godotengine.GodotSharp
+          # Android / WearOS and VR
+          - com.google.AndroidStudio
+          # Streams PC VR to Quest headsets over Wi-Fi.
+          - io.github.wivrn.wivrn
+          # Web and desktop app development
+          - com.getpostman.Postman
+          - io.dbeaver.DBeaverCommunity
+          - io.qt.QtCreator
