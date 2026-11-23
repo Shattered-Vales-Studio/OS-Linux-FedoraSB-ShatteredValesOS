@@ -82,12 +82,33 @@ readonly REQUIRED_PATHS=(
     /usr/share/backgrounds/shatteredvales/wallpaper.png
     /usr/share/shatteredvales/lockscreen-header.png
     /usr/share/shatteredvales/avatar.png
+    /etc/dconf/db/local.d/20-shatteredvales-app-folders
     /etc/dconf/db/local
     /etc/dconf/db/gdm
 )
 
+# check_artcraft_folder
+#   Confirms every app in the ArtCraft install list is also in the ArtCraft
+#   app grid folder, so a newly added Craft app cannot end up loose in the
+#   grid.
+#   Arguments: none
+#   Returns: 0 when the folder lists every app, 1 otherwise
+check_artcraft_folder() {
+    local folders=/etc/dconf/db/local.d/20-shatteredvales-app-folders
+    local list=/usr/share/shatteredvales/artcraft-apps.list
+    local apps id flatpak_id _ status=0
+    apps="$(sed -n '/^\[org\/gnome\/desktop\/app-folders\/folders\/ArtCraft\]/,/^\[/p' "${folders}" | grep '^apps=')"
+    while read -r id flatpak_id _; do
+        [[ -z "${id}" || "${id}" == \#* ]] && continue
+        [[ "${apps}" == *"'${flatpak_id}.desktop'"* ]] \
+            || { echo "ArtCraft folder is missing ${flatpak_id}.desktop"; status=1; }
+    done < "${list}"
+    return "${status}"
+}
+
 # main
-#   Checks required RPMs, paths, the Plymouth theme and bootc lint.
+#   Checks required RPMs, paths, the Plymouth theme, the ArtCraft folder
+#   and bootc lint.
 #   Arguments: none
 #   Returns: 0 when every check passes, 1 otherwise
 main() {
@@ -101,6 +122,7 @@ main() {
     done
     grep -q '^Theme=shatteredvales' /etc/plymouth/plymouthd.conf \
         || { echo "Plymouth theme not set"; failed=1; }
+    check_artcraft_folder || failed=1
 
     bootc container lint || failed=1
 

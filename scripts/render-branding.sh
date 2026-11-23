@@ -143,7 +143,7 @@ render_inside() {
     # transparent canvas. GNOME Shell's St toolkit only accepts pixel values
     # for background-position and otherwise centres the image on the clock,
     # so the canvas is exactly the clock's min-height in
-    # shell-overrides.css.in (480x640): centred, its top edge meets the top
+    # shell-overrides.css.in (480x920): centred, its top edge meets the top
     # of the clock and the header sits above the time. Rendered at 2x so it
     # stays sharp on HiDPI displays.
     wordmark 72 "${tmp}/wm-lock.png"
@@ -152,7 +152,7 @@ render_inside() {
         -background none -gravity center -append "${tmp}/lock-raw.png"
     glow "${tmp}/lock-raw.png" "${tmp}/lock-glow.png" 14
     magick "${tmp}/lock-glow.png" -resize 960x440 -background none -gravity center \
-        -extent 960x440 -gravity north -extent 960x1280 \
+        -extent 960x440 -gravity north -extent 960x1840 \
         "${out}/usr/share/shatteredvales/lockscreen-header.png"
 
     # Boot splash watermark. Plymouth draws it 1:1 on the framebuffer, so

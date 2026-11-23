@@ -58,14 +58,17 @@
  * same size with the 480x220 header at its top and transparency below:
  * centered, it lines up with the container's top edge. padding-top pushes
  * the time below the header. min-height leaves room for the time, date and
- * hint at up to 125% text scaling; keep it, background-size and the
- * renderer's canvas (2x: 960x1280) in step.
+ * hint, and puts the header's top 460px above the screen's centre and the
+ * time's top 80px below it (tuned on a 1920x1200 logical screen). Screens
+ * under about 950 logical pixels tall clip the top of the header. Keep
+ * min-height, background-size and the renderer's canvas (2x: 960x1840) in
+ * step.
  */
 .unlock-dialog-clock {
-  padding-top: 260px;
-  min-height: 640px;
+  padding-top: 540px;
+  min-height: 920px;
   background-image: url("file:///usr/share/shatteredvales/lockscreen-header.png");
-  background-size: 480px 640px;
+  background-size: 480px 920px;
   background-repeat: no-repeat;
 }
 

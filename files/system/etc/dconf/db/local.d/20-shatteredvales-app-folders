@@ -1,0 +1,55 @@
+# Default app grid folders. Defaults, not locks: users can rearrange,
+# rename or delete folders, and GNOME then keeps their own layout.
+#
+# GNOME Shell only writes its stock folders (Utilities, System) when
+# folder-children is empty, so they are redefined here alongside the
+# studio folders. An app listed in a folder that is not installed is simply
+# not shown, so every studio app can be listed up front.
+#
+# Accounts that existed before this file shipped already have their own
+# folder list. To switch one to these defaults:
+#   dconf reset -f /org/gnome/desktop/app-folders/
+
+[org/gnome/desktop/app-folders]
+folder-children=['ArtCraft', 'JetBrains', 'Development', 'Communication', 'Utilities', 'System']
+
+# Every app in files/system/usr/share/shatteredvales/artcraft-apps.list plus
+# the launcher; verify-image.sh fails the build if the two drift apart.
+[org/gnome/desktop/app-folders/folders/ArtCraft]
+name='ArtCraft'
+translate=false
+apps=['ai.storyteller.artcraft-launcher.desktop', 'ai.storyteller.photocraft.desktop', 'ai.storyteller.vectorcraft.desktop', 'ai.storyteller.filmcraft.desktop', 'ai.storyteller.lightcraft.desktop', 'ai.storyteller.pdfcraft.desktop', 'ai.storyteller.effectcraft.desktop', 'ai.storyteller.anicraft.desktop', 'ai.storyteller.designcraft.desktop', 'ai.storyteller.figcraft.desktop', 'ai.storyteller.soundcraft.desktop', 'ai.storyteller.wordcraft.desktop', 'ai.storyteller.deckcraft.desktop', 'ai.storyteller.cadcraft.desktop', 'ai.storyteller.gridcraft.desktop', 'ai.storyteller.texturecraft.desktop', 'ai.storyteller.materialcraft.desktop', 'ai.storyteller.craft-anything.desktop']
+
+# JetBrains Toolbox names each IDE's launcher with a per-install ID
+# (jetbrains-rider-<uuid>.desktop), so the IDEs are matched by their IDE
+# category instead. Every other app with that category is excluded here and
+# listed under Development.
+[org/gnome/desktop/app-folders/folders/JetBrains]
+name='JetBrains'
+translate=false
+apps=['jetbrains-toolbox.desktop']
+categories=['IDE']
+excluded-apps=['com.microsoft.VSCode.desktop', 'com.microsoft.VSCode.UrlHandler.desktop', 'io.qt.QtCreator.desktop', 'org.godotengine.GodotSharp.desktop', 'com.google.AndroidStudio.desktop', 'io.dbeaver.DBeaverCommunity.desktop', 'org.geany.Geany.desktop']
+
+[org/gnome/desktop/app-folders/folders/Development]
+name='Development'
+translate=false
+apps=['shatteredvales-new-project.desktop', 'shatteredvales-github-setup.desktop', 'com.microsoft.VSCode.desktop', 'unityhub.desktop', 'org.godotengine.GodotSharp.desktop', 'org.blender.Blender.desktop', 'com.google.AndroidStudio.desktop', 'io.qt.QtCreator.desktop', 'org.geany.Geany.desktop', 'io.dbeaver.DBeaverCommunity.desktop', 'com.getpostman.Postman.desktop', 'io.podman_desktop.PodmanDesktop.desktop', 'io.github.dvlv.boxbuddyrs.desktop', 'org.mapeditor.Tiled.desktop', 'io.github.f3d_app.f3d.desktop', 'renderdoc.desktop', 'io.github.wivrn.wivrn.desktop', 'virt-manager.desktop']
+
+# Chat apps are matched by category so new ones join automatically.
+[org/gnome/desktop/app-folders/folders/Communication]
+name='Communication'
+translate=false
+apps=['net.thunderbird.Thunderbird.desktop']
+categories=['InstantMessaging', 'Chat']
+
+# GNOME Shell's stock folders, as it would create them.
+[org/gnome/desktop/app-folders/folders/Utilities]
+name='X-GNOME-Shell-Utilities.directory'
+translate=true
+apps=['org.gnome.Connections.desktop', 'org.gnome.Papers.desktop', 'org.gnome.font-viewer.desktop', 'org.gnome.Loupe.desktop']
+
+[org/gnome/desktop/app-folders/folders/System]
+name='X-GNOME-Shell-System.directory'
+translate=true
+apps=['org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'org.gnome.Logs.desktop', 'org.freedesktop.MalcontentControl.desktop', 'org.gnome.SystemMonitor.desktop']
