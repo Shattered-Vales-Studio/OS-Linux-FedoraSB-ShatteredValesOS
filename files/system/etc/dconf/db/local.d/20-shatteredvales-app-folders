@@ -8,8 +8,11 @@
 # not shown, so every studio app can be listed up front.
 #
 # Accounts that existed before this file shipped already have their own
-# folder list. To switch one to these defaults:
+# folder list. To switch one to these defaults, run this and then log out
+# straight away; GNOME Shell 51's app grid breaks (empty grid, "page is
+# undefined" errors) if folders change under a running session:
 #   dconf reset -f /org/gnome/desktop/app-folders/
+#   dconf reset /org/gnome/shell/app-picker-layout
 
 [org/gnome/desktop/app-folders]
 folder-children=['ArtCraft', 'JetBrains', 'Development', 'Media', 'Web', 'Communication', 'Utilities', 'System']
