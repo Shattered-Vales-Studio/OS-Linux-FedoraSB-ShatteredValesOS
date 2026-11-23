@@ -87,6 +87,12 @@ Treat everything below as unverified until you have checked it.
   (GNOME Boxes or virt-manager).
 - When you change anything visual, tell the user exactly what to check on
   real hardware, since you cannot see it.
+- `bootc container lint` fails with "Function not implemented (os error 38)"
+  under amd64 emulation on Apple Silicon, even on the untouched base image.
+  It is an emulator limitation, not an image fault; CI runs it natively. For
+  local checks, build a throwaway copy of `build/Containerfile.<variant>`
+  without the `verify-image.sh` step, then run the script and `just test`
+  against it and expect only the lint check to fail. Never weaken the gate.
 
 ## Rules
 
