@@ -225,6 +225,64 @@ step_file_templates() {
     cp -n /usr/share/shatteredvales/templates/new-document/* "${templates}/"
 }
 
+# step_unity_cli
+#   Installs the Unity CLI (`unity`) with Unity's official installer into
+#   ~/.local/bin. Per user because it updates itself (`unity self-update`).
+#   sv-unity uses it, since Unity Hub 4 no longer has a command line.
+#   Returns: installer exit status
+step_unity_cli() {
+    if [[ -x "${HOME}/.local/bin/unity" ]]; then
+        return 0
+    fi
+    wait_for_network || return 1
+    curl -fsSL https://unity.com/install.sh | bash || return 1
+}
+
+# step_mcp_servers
+#   Adds the studio's local MCP servers to Claude Code for this user (user
+#   scope, so they work in every project and users can add their own).
+#   Both run through npx, so they're always current and nothing is
+#   installed globally. GitHub and the claude.ai connectors (Atlassian,
+#   Google Workspace, Slack, ...) are not added here: they come with the
+#   user's Claude organization sign-in.
+#   Returns: 0 when every server is configured, 1 otherwise
+step_mcp_servers() {
+    local claude="${HOME}/.local/bin/claude" failed=0
+    [[ -x "${claude}" ]] || return 1
+    # name, then the command that starts the server
+    local -a servers=(
+        "google-play-developer|npx -y google-play-developer-mcp"
+        "shopify-dev-mcp|npx -y @shopify/dev-mcp@latest"
+    )
+    local entry name
+    for entry in "${servers[@]}"; do
+        name="${entry%%|*}"
+        "${claude}" mcp get "${name}" >/dev/null 2>&1 && continue
+        # The command is split on spaces deliberately: none of these
+        # arguments contain spaces.
+        # shellcheck disable=SC2086
+        "${claude}" mcp add --scope user --transport stdio "${name}" -- ${entry#*|} \
+            || failed=1
+    done
+    return "${failed}"
+}
+
+# step_unity_mcp
+#   Registers the Unity Editor's MCP server (`unity mcp`, part of the Unity
+#   CLI) in Claude Code and Claude Desktop, so either can drive an open
+#   Unity Editor. Runs after the Unity CLI is installed.
+#   Returns: 0 when both clients are configured, 1 otherwise
+step_unity_mcp() {
+    local unity="${HOME}/.local/bin/unity"
+    [[ -x "${unity}" && -x "${HOME}/.local/bin/claude" ]] || return 1
+    # UNITY_NO_CONSENT_PROMPT skips the CLI's first-run analytics question
+    # without answering it on the user's behalf; --yes only confirms adding
+    # the entry this step exists to add.
+    UNITY_NO_CONSENT_PROMPT=1 PATH="${HOME}/.local/bin:${PATH}" \
+        "${unity}" mcp configure claude-code --yes --non-interactive || return 1
+    UNITY_NO_CONSENT_PROMPT=1 "${unity}" mcp configure claude --yes --non-interactive || return 1
+}
+
 # main
 #   Runs every pending per-user setup step and logs to the state directory.
 #   Arguments: none
@@ -236,6 +294,9 @@ main() {
     local failed=0
     run_step git-lfs-v1 step_git_lfs || failed=1
     run_step claude-code-v1 step_claude_code || failed=1
+    run_step mcp-servers-v1 step_mcp_servers || failed=1
+    run_step unity-cli-v1 step_unity_cli || failed=1
+    run_step unity-mcp-v1 step_unity_mcp || failed=1
     run_step npm-prefix-v1 step_npm_prefix || failed=1
     run_step rustup-v1 step_rustup || failed=1
     run_step jetbrains-toolbox-v1 step_jetbrains_toolbox || failed=1

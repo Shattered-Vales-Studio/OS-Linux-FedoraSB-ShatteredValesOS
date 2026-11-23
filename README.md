@@ -82,7 +82,8 @@ separate private repo because it holds secrets).
   Manager, Flatseal, Blender, Krita, GIMP, Inkscape, Audacity, Godot (.NET),
   Android Studio, WiVRn (PC VR streaming to Quest), Postman, DBeaver,
   Qt Creator, Podman Desktop, BoxBuddy, Tiled, F3D, Flameshot, Parsec, Slack,
-  Discord. The first boot downloads several GB, so allow time on a fresh
+  Discord, VLC, HandBrake, MakeMKV (free for DVDs; Blu-ray needs its beta key
+  or a licence). The first boot downloads several GB, so allow time on a fresh
   install.
 - **ArtCraft at first login:** the 17 official Craft apps (PhotoCraft,
   VectorCraft, FilmCraft, WordCraft, GridCraft, DeckCraft, CADCraft and the
@@ -95,7 +96,15 @@ separate private repo because it holds secrets).
   plain images, video and audio, with the Craft app offered second; 3D
   models open in F3D, `.blend` in Blender, code in VS Code, and email links
   in Thunderbird. Users can change any of these in Settings.
-- **Per user at first login:** Claude Code, Rust (rustup), JetBrains Toolbox
+- **MCP servers for Claude:** at first login each user gets the Unity
+  Editor MCP (Claude Code and Claude Desktop), Google Play Developer and
+  Shopify Dev MCP. GitHub's MCP comes from the studio's Claude organization
+  and signs in with the GitHub CLI's token automatically (no personal access
+  token needed); the claude.ai connectors (Atlassian, Google Workspace,
+  Slack, ...) follow each person's Claude sign-in.
+- **Devices:** adb and fastboot work without root for Meta Quest headsets,
+  WearOS watches and Android phones of any brand.
+- **Per user at first login:** Claude Code, the Unity CLI, Rust (rustup), JetBrains Toolbox
   (for Rider and other JetBrains IDEs), Git LFS hooks, and an npm global
   prefix in `~/.local` so `npm install -g` works on the read-only system.
 - **GitHub setup:** *GitHub Setup* in the app grid (or `sv-github setup`)
@@ -141,6 +150,9 @@ separate private repo because it holds secrets).
 | `sv-branch <issue>` | Creates `feature/issue-<n>-<title>` from the latest `Dev` |
 | `sv-rebase` | The guide's safe rebase onto `Dev`: backup, fetch, rebase, push with lease; `--continue` after conflicts |
 | `sv-lfs-init unity\|godot\|blender` | Adds the LFS guide's `.gitattributes` (with lockable art) and engine `.gitignore` to a repo |
+| `sv-unity [open]` | Installs the Unity editor version a project needs (plus Android build support), optionally opens it |
+| `sv-env <item> -- <cmd>` | Runs a command with secrets from the Bitwarden vault as environment variables; no `.env` files |
+| `sv-quest run <file.apk>` | Installs a build on a Quest, launches it and follows the Unity log; `wifi`, `devices`, `log`, `launch` too |
 | `sv-clean` | Frees disk space from caches only (Docker, npm, NuGet, uv, Go, thumbnails, old logs), asking first |
 | `sv-new-project [name]` | New project from the Claude template, straight into the design interview |
 | `sv-github setup` | Connects the account to GitHub (same as *GitHub Setup*) |

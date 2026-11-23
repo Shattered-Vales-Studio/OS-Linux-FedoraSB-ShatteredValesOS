@@ -57,6 +57,11 @@ modules:
           # Game asset and level tools
           - org.mapeditor.Tiled
           - io.github.f3d_app.f3d
+          # Video: playback, transcoding and disc ripping. MakeMKV is free
+          # for DVDs; Blu-ray needs its monthly beta key or a licence.
+          - org.videolan.VLC
+          - fr.handbrake.ghb
+          - com.makemkv.MakeMKV
           # Annotated screenshots for bug reports and QA
           - org.flameshot.Flameshot
           # Remote playtesting

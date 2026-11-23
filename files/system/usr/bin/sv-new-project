@@ -211,7 +211,14 @@ main() {
         echo "To publish later: gh repo create ${owner}/${name} --private --source . --push && scripts/setup-repo.sh"
     fi
     echo
-    claude "$(interview_prompt "${dir}" "${about}")" || true
+    # Scripts don't see the interactive shell's claude wrapper, so pass the
+    # GitHub CLI's token for the organization's GitHub MCP server here too.
+    if [[ -z "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]]; then
+        GITHUB_PERSONAL_ACCESS_TOKEN="$(gh auth token 2>/dev/null || true)" \
+            claude "$(interview_prompt "${dir}" "${about}")" || true
+    else
+        claude "$(interview_prompt "${dir}" "${about}")" || true
+    fi
 
     say "You're in ${dir}. Type 'exit' to close this shell."
     exec "${SHELL:-/bin/bash}"

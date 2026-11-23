@@ -54,6 +54,11 @@ readonly REQUIRED_PATHS=(
     /usr/bin/sv-rebase
     /usr/bin/sv-lfs-init
     /usr/bin/sv-clean
+    /usr/bin/sv-unity
+    /usr/bin/sv-env
+    /usr/bin/sv-quest
+    /etc/profile.d/shatteredvales-claude.sh
+    /usr/lib/udev/rules.d/70-shatteredvales-android.rules
     /usr/libexec/shatteredvales/git-common.sh
     /usr/share/shatteredvales/artcraft-apps.list
     /usr/share/shatteredvales/templates/repo/gitattributes-game

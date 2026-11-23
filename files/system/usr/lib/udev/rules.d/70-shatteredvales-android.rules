@@ -1,0 +1,8 @@
+# Lets the person at the workstation use adb and fastboot without root, for
+# Meta Quest headsets, WearOS watches and Android phones of any brand.
+# Fedora's android-tools ships no udev rules. Matching the USB interface
+# class instead of vendor IDs covers every device that exposes ADB
+# (class ff, subclass 42, protocol 01) or fastboot (protocol 03).
+# Numbered below 73 so systemd's seat rules apply the uaccess tag.
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_USB_INTERFACES}=="*:ff4201:*", TAG+="uaccess"
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_USB_INTERFACES}=="*:ff4203:*", TAG+="uaccess"
