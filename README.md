@@ -76,8 +76,10 @@ and log out straight away.
 
 ## New machines
 
-Use the unattended USB installer built from `installer-template/` (kept in a
-separate private repo because it holds secrets).
+Build a USB installer with
+[Shattered-Vales-Studio/OS-Installer](https://github.com/Shattered-Vales-Studio/OS-Installer)
+(`./build-iso.sh --edition studio ...`) and write it with balenaEtcher. The
+Studio stick installs unattended and erases the internal disk.
 
 ## What's included
 

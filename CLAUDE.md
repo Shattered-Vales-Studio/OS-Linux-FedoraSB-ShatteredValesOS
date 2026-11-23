@@ -21,8 +21,9 @@ installed on studio machines. Read this whole file before making changes.
 - Brand values reach the image through `/usr/share/shatteredvales/brand.env`
   (a copy made by the renderer). Templates use `@BRAND_*@` placeholders that
   build scripts substitute.
-- `installer-template/` is a template for a separate **private** repo. Never
-  put real secrets in this repository.
+- USB installers live in the public `Shattered-Vales-Studio/OS-Installer`
+  repo. Never put real secrets (admin hashes, Tailscale or other keys) in
+  any repository.
 
 ## Bootstrap tasks (do these first, in order, and report back)
 
