@@ -139,16 +139,21 @@ render_inside() {
         rsvg-convert -h "${h}" "${tmp}/logo-foil.svg" -o "${tmp}/logo-${h}.png"
     done
 
-    # Lock screen header: logo above the wordmark. Rendered at 2x the
-    # 480x220 box declared in shell-overrides.css.in so it stays sharp on
-    # HiDPI displays; the CSS scales it down on standard ones.
+    # Lock screen header: logo above the wordmark, at the top of a tall
+    # transparent canvas. GNOME Shell's St toolkit only accepts pixel values
+    # for background-position and otherwise centres the image on the clock,
+    # so the canvas is exactly the clock's min-height in
+    # shell-overrides.css.in (480x640): centred, its top edge meets the top
+    # of the clock and the header sits above the time. Rendered at 2x so it
+    # stays sharp on HiDPI displays.
     wordmark 72 "${tmp}/wm-lock.png"
     magick "${tmp}/logo-256.png" -trim +repage "${tmp}/logo-lock.png"
     magick "${tmp}/logo-lock.png" \( -size 1x28 xc:none \) "${tmp}/wm-lock.png" \
         -background none -gravity center -append "${tmp}/lock-raw.png"
     glow "${tmp}/lock-raw.png" "${tmp}/lock-glow.png" 14
     magick "${tmp}/lock-glow.png" -resize 960x440 -background none -gravity center \
-        -extent 960x440 "${out}/usr/share/shatteredvales/lockscreen-header.png"
+        -extent 960x440 -gravity north -extent 960x1280 \
+        "${out}/usr/share/shatteredvales/lockscreen-header.png"
 
     # Boot splash watermark. Plymouth draws it 1:1 on the framebuffer, so
     # it is sized for a 1080p panel and stays proportionate on 4K.
@@ -171,14 +176,22 @@ render_inside() {
         "${out}/usr/share/backgrounds/shatteredvales/wallpaper.png"
 
     # Login screen logo: GDM shows it at roughly 48px tall under the user
-    # list, so it is the mark beside the first line only, rendered at 2x.
+    # list, so it is the mark beside the OS name on one line, rendered at 2x.
     magick -background none -fill white -font "${BRAND_DISPLAY_FONT_FILE}" \
-        -pointsize 96 -kerning 9.6 label:"${BRAND_NAME_LINE1^^}" -trim +repage "${tmp}/gdm-text-white.png"
+        -pointsize 96 -kerning 9.6 label:"${BRAND_OS_NAME^^}" -trim +repage "${tmp}/gdm-text-white.png"
     foilify "${tmp}/gdm-text-white.png" "${tmp}/gdm-text.png"
     magick "${tmp}/logo-256.png" -trim +repage -resize x150 "${tmp}/logo-gdm.png"
     magick "${tmp}/logo-gdm.png" \( -size 28x1 xc:none \) "${tmp}/gdm-text.png" \
         -background none -gravity center +append -resize x96 \
         "${out}/usr/share/pixmaps/shatteredvales-gdm-logo.png"
+
+    # Default account picture: the logo on the site's page gradient. GNOME
+    # crops account pictures to a circle, so the mark stays inside the
+    # inscribed circle with room to spare.
+    magick -size 512x512 -define gradient:radii=256,256 \
+        "radial-gradient:${BRAND_BG_GLOW}-${BRAND_BG}" \
+        \( "${tmp}/logo-1024.png" -trim +repage -resize 300x300 \) \
+        -gravity center -composite "${out}/usr/share/shatteredvales/avatar.png"
 
     cp "${src}/logo-symbolic.svg" "${out}/usr/share/pixmaps/shatteredvales-logo-symbolic.svg"
     cp "${tmp}/logo-foil.svg" "${out}/usr/share/icons/hicolor/scalable/apps/shatteredvales-logo.svg"

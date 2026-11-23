@@ -81,6 +81,7 @@ readonly REQUIRED_PATHS=(
     /usr/share/plymouth/themes/shatteredvales/watermark.png
     /usr/share/backgrounds/shatteredvales/wallpaper.png
     /usr/share/shatteredvales/lockscreen-header.png
+    /usr/share/shatteredvales/avatar.png
     /etc/dconf/db/local
     /etc/dconf/db/gdm
 )
