@@ -93,6 +93,17 @@ separate private repo because it holds secrets).
 - **Git defaults:** `/etc/gitconfig` holds the settings from the *Daily Git
   Terminal Workflow* guide, Git LFS, and Unity Smart Merge for whichever
   Unity editor is installed. Users' own `git config --global` still wins.
+- **New projects:** *New Claude Project* in the app grid (or
+  `sv-new-project [repo-name]`) creates a repository from
+  `Template-ClaudeProject`, runs its setup script, and starts Claude Code in
+  the template's design interview. Without a name it makes a local-only
+  folder you can publish later.
+- **Policies:** the screen locks after 30 minutes idle (users cannot change
+  this). Desktops never suspend on mains power, so overnight builds and
+  remote access keep working; laptops still sleep on battery. A
+  notification asks people to restart when an update has waited 3+ days.
+- **Terminal:** a Git-aware bash prompt with the branch in brand gold. Set
+  `SV_PROMPT=0` to keep your own.
 - **Browsers:** Firefox and Chromium show a managed *Shattered Vales*
   bookmarks folder (website, guides, staff resources) on the toolbar.
 - **Desktop:** bottom dock, logo menu top left, clock and tray icons top right,
@@ -107,6 +118,9 @@ separate private repo because it holds secrets).
 | `sv-gpu-image status` | Shows detected GPU and whether the right image is installed |
 | `sudo sv-gpu-image apply` | Switches to the matching image after a GPU change |
 | `sv-first-login` | Re-runs per-user setup (e.g. for SSH-only accounts) |
+| `sv-doctor` | Health check for support; `sv-doctor --copy` copies the report to paste into a message |
+| `sv-update` | Shows the waiting OS update and what it changes; `now` updates immediately, `rollback` goes back |
+| `sv-new-project [name]` | New project from the Claude template, straight into the design interview |
 | `sv-github setup` | Connects the account to GitHub (same as *GitHub Setup*) |
 | `sv-github list` | Shows GitHub profiles; `sv-github test [alias]` checks one |
 | `rpm-ostree rollback` | Boots the previous image if an update misbehaves |

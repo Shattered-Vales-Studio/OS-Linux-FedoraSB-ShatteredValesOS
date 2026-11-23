@@ -1,0 +1,5 @@
+# Screen lock policy (30 minutes idle, lock immediately). Users cannot
+# change these keys; everything else in the studio defaults stays editable.
+/org/gnome/desktop/session/idle-delay
+/org/gnome/desktop/screensaver/lock-enabled
+/org/gnome/desktop/screensaver/lock-delay

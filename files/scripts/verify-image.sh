@@ -39,6 +39,14 @@ readonly REQUIRED_PATHS=(
     /usr/bin/sv-github
     /usr/bin/unityyamlmerge
     /usr/share/applications/shatteredvales-github-setup.desktop
+    /usr/share/applications/shatteredvales-new-project.desktop
+    /usr/bin/sv-new-project
+    /usr/bin/sv-doctor
+    /usr/bin/sv-update
+    /usr/libexec/shatteredvales/update-reminder.sh
+    /usr/lib/systemd/user/shatteredvales-update-reminder.timer
+    /etc/dconf/db/local.d/locks/10-shatteredvales-screenlock
+    /etc/profile.d/shatteredvales-prompt.sh
     /etc/firefox/policies/policies.json
     /etc/chromium/policies/managed/shatteredvales-bookmarks.json
     # Desktop files referenced by favorite-apps in the dconf defaults.

@@ -8,3 +8,8 @@ color-scheme='prefer-dark'
 accent-color='@BRAND_GNOME_ACCENT@'
 font-name='@BRAND_FONT_FAMILY@ 11'
 clock-format='12h'
+
+[org/gnome/settings-daemon/plugins/power]
+# The login screen has its own power settings and would otherwise suspend an
+# idle workstation after 15 minutes, cutting off remote access.
+sleep-inactive-ac-type='nothing'
