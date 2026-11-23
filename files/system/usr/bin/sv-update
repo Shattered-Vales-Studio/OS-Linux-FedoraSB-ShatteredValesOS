@@ -94,7 +94,9 @@ cmd_status() {
 #   Returns: non-zero if the OS update fails
 cmd_now() {
     say "Checking for an OS update (asks for your password)"
-    sudo bootc upgrade
+    # rpm-ostree rather than bootc upgrade, which refuses to run when
+    # packages are layered on the deployment.
+    sudo rpm-ostree upgrade
     say "Updating apps"
     flatpak update --system -y --noninteractive || echo "System app updates failed; try again later."
     flatpak update --user -y --noninteractive || true

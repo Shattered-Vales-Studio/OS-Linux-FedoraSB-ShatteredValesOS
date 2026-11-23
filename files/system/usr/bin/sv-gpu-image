@@ -12,6 +12,10 @@
 #   sv-gpu-image status        Show detected GPU and current image
 #   sv-gpu-image check         Exit 0 if matched, 2 if a switch is advised
 #   sv-gpu-image apply         Switch to the matching image (reboot after)
+#
+# Exit codes:
+#   0 on success or a match, 1 when not booted from a container image,
+#   2 from check on a mismatch, 64 on bad usage.
 
 set -euo pipefail
 
@@ -26,9 +30,20 @@ has_nvidia_gpu() {
 }
 
 # current_image
-#   Prints the image reference the system booted from.
+#   Prints the image reference the system booted from, without the ostree
+#   transport prefix. rpm-ostree is used rather than bootc because it works
+#   without root (sv-doctor runs this as the user) and still reports the
+#   image when packages are layered on top.
+#   Output: e.g. ghcr.io/shattered-vales-studio/shatteredvales-os:latest
+#   Returns: 1 if the system is not booted from a container image
 current_image() {
-    bootc status --format=json | jq -r '.status.booted.image.image.image'
+    local ref
+    ref="$(rpm-ostree status --json \
+        | jq -r '.deployments[] | select(.booted) | ."container-image-reference" // empty')"
+    [[ -n "${ref}" ]] || return 1
+    # Strip "ostree-image-signed:docker://", "ostree-unverified-registry:" etc.
+    ref="${ref#*docker://}"
+    echo "${ref#ostree-unverified-registry:}"
 }
 
 # target_image
@@ -56,7 +71,7 @@ target_image() {
 #   Returns: 0 on success, 2 from check on a mismatch, 64 on bad usage
 main() {
     local cmd="${1:-status}" current target
-    current="$(current_image)"
+    current="$(current_image)" || { echo "Not booted from a container image." >&2; exit 1; }
     target="$(target_image "${current}")"
 
     case "${cmd}" in
@@ -76,7 +91,9 @@ main() {
                 echo "Already on the matching image."
                 exit 0
             fi
-            bootc switch --enforce-container-sigpolicy "${target}"
+            # rpm-ostree rather than bootc switch, which refuses to run when
+            # packages are layered on the deployment.
+            rpm-ostree rebase "ostree-image-signed:docker://${target}"
             echo "Switched to ${target}. Reboot to finish."
             ;;
         *)
