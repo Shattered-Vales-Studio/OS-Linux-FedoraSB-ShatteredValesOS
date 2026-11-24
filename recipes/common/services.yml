@@ -1,18 +1,12 @@
 ---
+# Studio services, enabled on top of Core's (Tailscale, GPU check, signed
+# switch, boot menu theme, update reminder).
 modules:
   - type: systemd
     system:
       enabled:
         - docker.socket
-        - tailscaled.service
+        # Remote access for IT and between studio machines; Core leaves
+        # sshd off.
         - sshd.service
         - shatteredvales-groups.service
-        - shatteredvales-gpu-check.service
-        # Finishes sv-migrate.sh moves by switching to the signed image.
-        - shatteredvales-signed-switch.service
-        # Copies the branded boot menu theme into /boot.
-        - shatteredvales-grub-theme.service
-    user:
-      enabled:
-        # Nudges people to restart when an OS update has waited 3+ days.
-        - shatteredvales-update-reminder.timer

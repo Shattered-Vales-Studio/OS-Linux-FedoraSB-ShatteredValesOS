@@ -1,6 +1,8 @@
 ---
-# Copies the static filesystem tree into the image. This runs first so that
-# repo definitions in /etc/yum.repos.d exist before the package step.
+# Copies Studio Edition's files over Core's: its brand.env and artwork,
+# desktop defaults, first-login, sv-doctor and release-gate drop-ins, the
+# studio tools and the package repositories. This runs first so the repo
+# definitions in /etc/yum.repos.d exist before the package steps.
 modules:
   - type: files
     files:

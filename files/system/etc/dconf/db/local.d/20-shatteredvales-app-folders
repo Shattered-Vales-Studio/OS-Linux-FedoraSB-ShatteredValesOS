@@ -18,7 +18,8 @@
 folder-children=['ArtCraft', 'JetBrains', 'Development', 'Media', 'Web', 'Communication', 'Utilities', 'System']
 
 # Every app in files/system/usr/share/shatteredvales/artcraft-apps.list plus
-# the launcher; verify-image.sh fails the build if the two drift apart.
+# the launcher; the release gate (verify.d/50-artcraft-folder.sh) fails
+# the build if the two drift apart.
 [org/gnome/desktop/app-folders/folders/ArtCraft]
 name='ArtCraft'
 translate=false

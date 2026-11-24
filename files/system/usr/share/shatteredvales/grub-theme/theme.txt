@@ -7,7 +7,7 @@ desktop-color: "#050505"
 terminal-font: "Lato Regular 20"
 
 + image {
-  left = 50%-422
+  left = 50%-493
   top = 16%
   file = "logo.png"
 }

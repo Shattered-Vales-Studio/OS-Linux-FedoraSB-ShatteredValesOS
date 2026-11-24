@@ -1,4 +1,4 @@
-# Shattered Vales OS developer tasks. Run `just` to list them.
+# Shattered Vales OS Studio Edition developer tasks. Run `just` to list them.
 # Local builds target linux/amd64; on Apple Silicon OrbStack runs them
 # through Rosetta, which is slower than CI but catches recipe errors early.
 
@@ -14,7 +14,7 @@ bluebuild := if `command -v bluebuild || true` != "" { "bluebuild" } else { "doc
 default:
     @just --list
 
-# Render all artwork from branding/ into files/system.
+# Render the edition's artwork with Core's renderer (CORE_REF=<branch> to pick one).
 branding:
     ./scripts/render-branding.sh
 
@@ -41,6 +41,9 @@ test variant="base":
 # Static checks on every shell script.
 lint:
     shellcheck files/scripts/*.sh files/system/usr/libexec/shatteredvales/*.sh \
+        files/system/usr/libexec/shatteredvales/first-login.d/*.sh \
+        files/system/usr/libexec/shatteredvales/sv-doctor.d/*.sh \
+        files/system/usr/libexec/shatteredvales/verify.d/*.sh \
         files/system/usr/bin/* files/system/etc/profile.d/*.sh scripts/*.sh tests/*.sh
 
 # Create the cosign key pair used to sign images (one time only).

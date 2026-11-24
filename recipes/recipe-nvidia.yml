@@ -1,19 +1,19 @@
----
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-# Shattered Vales OS for machines with NVIDIA graphics.
+# Shattered Vales OS Studio Edition for machines with NVIDIA graphics.
 # All shared configuration lives in recipes/common so the base and NVIDIA
 # images can never drift apart; only the base image differs.
 name: shatteredvales-os-nvidia
-description: Shattered Vales Studio workstation image (NVIDIA graphics)
+description: Shattered Vales OS Studio Edition (NVIDIA graphics)
 
-# BlueBuild's NVIDIA base ships prebuilt, signed kernel modules, which is
-# what removes the post-install driver pain on Fedora. The open kernel
-# modules support Turing (RTX 20xx / GTX 16xx) and newer; older cards need
-# fedora-silverblue-nvidia (580 driver series) instead.
-base-image: ghcr.io/blue-build/base-images/fedora-silverblue-nvidia-open
-# Pinned so a Fedora major release is an explicit, tested change rather than
-# something that lands on every workstation overnight.
-image-version: 45
+# Built on Core Edition, which carries everything every edition shares
+# (apps, branding, update and support tools, the release gate). Studio adds
+# the developer tooling, Docker, Unity, Claude, the studio's apps and its
+# own branding on top.
+base-image: ghcr.io/shattered-vales-studio/shatteredvales-os-core-nvidia
+# Core's promoted image: Core changes reach Studio only after Core's own
+# canary week, then go through Studio's :testing like any other change.
+# The Fedora release follows Core.
+image-version: latest
 # Builds from main publish only :testing (canary machines). The
 # promote-images workflow moves :latest, which the rest of the studio runs.
 alt-tags:
@@ -24,8 +24,7 @@ modules:
   - from-file: common/packages.yml
   - from-file: common/devtools.yml
   - from-file: common/extras.yml
-  - from-file: common/desktop.yml
-  - from-file: common/branding.yml
   - from-file: common/flatpaks.yml
   - from-file: common/services.yml
+  - from-file: common/branding.yml
   - from-file: common/finalize.yml

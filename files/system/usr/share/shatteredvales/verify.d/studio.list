@@ -1,0 +1,108 @@
+# Studio Edition release gate, checked together with Core's core.list. Rule
+# format is described in /usr/libexec/shatteredvales/build/verify-image.sh.
+
+# Packages Studio layers over Core.
+rpm docker-ce
+rpm golang
+rpm git
+rpm git-lfs
+rpm code
+rpm unityhub
+rpm claude-desktop-unofficial
+rpm openssh-server
+rpm subversion
+rpm p4-cli
+rpm gcc
+rpm gcc-c++
+rpm cmake
+rpm ninja-build
+rpm clang
+rpm gdb
+rpm renderdoc
+rpm vulkan-tools
+rpm vulkan-validation-layers
+rpm mangohud
+rpm gamemode
+rpm android-tools
+rpm openxr
+rpm monado
+rpm dotnet-sdk-10.0
+rpm nodejs26
+rpm nodejs26-npm
+rpm pnpm
+rpm chromium
+rpm gh
+rpm pipx
+rpm uv
+rpm distrobox
+rpm webkit2gtk4.1-devel
+rpm gtk3-devel
+rpm libayatana-appindicator-gtk3-devel
+rpm mingw64-gcc
+rpm mingw64-gcc-c++
+rpm flatpak-builder
+rpm rpm-build
+rpm virt-manager
+rpm libvirt-daemon-kvm
+rpm qemu-kvm
+
+# Relocated /opt payloads and the tools developers call by name.
+path /usr/bin/unityhub
+# p4-cli installs into /opt; this proves BlueBuild relocated it.
+path /usr/lib/opt/perforce/bin/p4
+path /usr/bin/node
+path /usr/bin/bw
+
+# Studio Git defaults, GitHub setup and the sv- tools.
+path /etc/gitconfig
+path /usr/bin/sv-github
+path /usr/bin/unityyamlmerge
+path /usr/bin/sv-new-project
+path /usr/bin/sv-branch
+path /usr/bin/sv-rebase
+path /usr/bin/sv-lfs-init
+path /usr/bin/sv-clean
+path /usr/bin/sv-unity
+path /usr/bin/sv-env
+path /usr/bin/sv-quest
+path /usr/bin/sv-box
+path /usr/libexec/shatteredvales/git-common.sh
+path /usr/share/applications/shatteredvales-github-setup.desktop
+path /usr/share/applications/shatteredvales-new-project.desktop
+path /usr/share/icons/hicolor/scalable/apps/shatteredvales-new-project.svg
+path /usr/share/icons/hicolor/scalable/apps/shatteredvales-github-setup.svg
+path /usr/share/shatteredvales/templates/repo/gitattributes-game
+path /usr/share/shatteredvales/templates/new-document/README.md
+
+# Shell environment: prompt, ~/Source, Claude, Homebrew and mise.
+path /etc/profile.d/shatteredvales-prompt.sh
+path /etc/profile.d/shatteredvales-source.sh
+path /etc/profile.d/shatteredvales-claude.sh
+path /etc/profile.d/shatteredvales-brew.sh
+path /etc/profile.d/shatteredvales-mise.sh
+path /usr/lib/tmpfiles.d/shatteredvales-homebrew.conf
+
+# Docker, device access and groups. sysusers creates the docker group on
+# machines that rebase onto the image.
+path /etc/docker/daemon.json
+path /usr/lib/udev/rules.d/70-shatteredvales-android.rules
+path /usr/lib/sysusers.d/shatteredvales.conf
+
+# Studio desktop policy: screen lock, app folders, browser homepage and
+# bookmarks.
+path /etc/dconf/db/local.d/locks/10-shatteredvales-screenlock
+path /etc/dconf/db/local.d/20-shatteredvales-app-folders
+path /etc/chromium/policies/recommended/shatteredvales-homepage.json
+path /etc/chromium/policies/managed/shatteredvales-bookmarks.json
+
+# Desktop files referenced by favorite-apps in Studio's dconf defaults.
+path /usr/share/applications/com.microsoft.VSCode.desktop
+path /usr/share/applications/unityhub.desktop
+path /usr/share/applications/claude-desktop-unofficial.desktop
+path /usr/share/applications/org.gnome.Ptyxis.desktop
+
+# Studio branding and drop-ins applied over Core's.
+path /etc/dconf/db/local.d/50-shatteredvales-studio
+path /usr/libexec/shatteredvales/first-login.d/50-studio.sh
+path /usr/libexec/shatteredvales/sv-doctor.d/50-studio.sh
+path /usr/libexec/shatteredvales/verify.d/50-artcraft-folder.sh
