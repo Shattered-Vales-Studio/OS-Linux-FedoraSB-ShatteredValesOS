@@ -1,11 +1,27 @@
 {
   "policies": {
     "ManagedBookmarks": [
-      { "toplevel_name": "Shattered Vales" },
-      { "name": "Shattered Vales Studio", "url": "https://shatteredvales.studio/" },
-      { "name": "Guides", "url": "https://shatteredvales.studio/guide/" },
-      { "name": "Staff Resources", "url": "https://shatteredvales.studio/staff/" }
+      {
+        "toplevel_name": "Shattered Vales"
+      },
+      {
+        "name": "Shattered Vales Studio",
+        "url": "https://shatteredvales.studio/"
+      },
+      {
+        "name": "Guides",
+        "url": "https://shatteredvales.studio/guide/"
+      },
+      {
+        "name": "Staff Resources",
+        "url": "https://shatteredvales.studio/staff/"
+      }
     ],
-    "DisplayBookmarksToolbar": "always"
+    "DisplayBookmarksToolbar": "always",
+    "Homepage": {
+      "URL": "https://shatteredvales.studio/",
+      "StartPage": "homepage",
+      "Locked": false
+    }
   }
 }

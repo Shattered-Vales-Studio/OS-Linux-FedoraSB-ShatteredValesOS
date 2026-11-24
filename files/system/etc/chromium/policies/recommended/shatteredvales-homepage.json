@@ -1,0 +1,7 @@
+{
+  "HomepageLocation": "https://shatteredvales.studio/",
+  "HomepageIsNewTabPage": false,
+  "ShowHomeButton": true,
+  "RestoreOnStartup": 4,
+  "RestoreOnStartupURLs": ["https://shatteredvales.studio/"]
+}
