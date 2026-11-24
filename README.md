@@ -78,8 +78,9 @@ and log out straight away.
 
 Build a USB installer with
 [Shattered-Vales-Studio/OS-Installer](https://github.com/Shattered-Vales-Studio/OS-Installer)
-(`./build-iso.sh --edition studio ...`) and write it with balenaEtcher. The
-Studio stick installs unattended and erases the internal disk.
+(`./build-iso.sh --edition studio ...`, network or offline) and write it with
+balenaEtcher. The installer asks for the disk, the computer's name and the
+first (administrator) account; nothing on the stick is tied to the studio.
 
 ## What's included
 
@@ -208,6 +209,19 @@ Studio stick installs unattended and erases the internal disk.
 | `brew install <tool>` | Command-line tools without layering packages onto the OS |
 | `mise use node@22` | Pins a tool version for the current project (writes `mise.toml`) |
 | `rpm-ostree rollback` | Boots the previous image if an update misbehaves |
+
+## Keeping up with Fedora
+
+- **Updates within a release** are automatic: nightly builds start from
+  BlueBuild's base images, which pick up Fedora's updates daily, and the
+  weekly promotion moves them to `:latest`.
+- **New Fedora releases** (every April and October): the *fedora-release*
+  workflow checks every Monday. When Fedora N+1 is released and the base
+  images publish it, it pushes a `fedora-<N+1>` branch with the version
+  bumps and opens an issue with the pull request link and the hardware
+  checklist. Nothing moves to a new release without someone testing it.
+- **GitHub Actions** used by the workflows are kept current by Dependabot
+  (one grouped pull request a week when there is something to update).
 
 ## Developing
 
