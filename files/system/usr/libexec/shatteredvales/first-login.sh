@@ -272,6 +272,32 @@ step_file_templates() {
     cp -n /usr/share/shatteredvales/templates/new-document/* "${templates}/"
 }
 
+# step_terminal_palette
+#   Makes the Shattered Vales palette the default colours of the user's
+#   Ptyxis profile. Ptyxis reads custom palettes only from the user's data
+#   folder, so the palette is copied there. A profile is created when the
+#   user has never opened Ptyxis, and a palette the user already chose is
+#   left alone.
+#   Arguments: none
+#   Returns: non-zero if the palette cannot be installed or applied
+step_terminal_palette() {
+    local dir="${XDG_DATA_HOME:-${HOME}/.local/share}/org.gnome.Ptyxis/palettes"
+    local uuid path current
+    mkdir -p "${dir}"
+    cp /usr/share/shatteredvales/ptyxis/ShatteredVales.palette "${dir}/" || return 1
+    uuid="$(gsettings get org.gnome.Ptyxis default-profile-uuid | tr -d "'")" || return 1
+    if [[ -z "${uuid}" ]]; then
+        # Ptyxis profile ids are 32 hex digits, the same shape it generates.
+        uuid="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+        gsettings set org.gnome.Ptyxis profile-uuids "['${uuid}']" || return 1
+        gsettings set org.gnome.Ptyxis default-profile-uuid "${uuid}" || return 1
+    fi
+    path="org.gnome.Ptyxis.Profile:/org/gnome/Ptyxis/Profiles/${uuid}/"
+    current="$(gsettings get "${path}" palette | tr -d "'")" || return 1
+    [[ "${current}" == gnome ]] || return 0
+    gsettings set "${path}" palette ShatteredVales
+}
+
 # is_generated_avatar
 #   Tells a picture the user chose apart from the initials avatar GNOME
 #   Initial Setup generates. Generated avatars are drawn as a circle with
@@ -446,6 +472,7 @@ main() {
     run_step github-reminder-v1 step_github_reminder || failed=1
     run_step source-bookmark-v1 step_source_bookmark || failed=1
     run_step file-templates-v1 step_file_templates || failed=1
+    run_step terminal-palette-v1 step_terminal_palette || failed=1
     # Last, because it downloads about 1 GB.
     run_step artcraft-apps-v1 step_artcraft_apps || failed=1
     sync_share_bookmarks

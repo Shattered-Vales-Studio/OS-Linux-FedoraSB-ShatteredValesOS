@@ -42,5 +42,7 @@ modules:
         - gnome-shell-extension-appindicator
         # Used by sv-gpu-image and the first-login script
         - jq
+        # `fastfetch` system summary with the studio logo
+        - fastfetch
         - pciutils
         - libnotify
