@@ -10,6 +10,8 @@ modules:
         - shatteredvales-gpu-check.service
         # Finishes sv-migrate.sh moves by switching to the signed image.
         - shatteredvales-signed-switch.service
+        # Copies the branded boot menu theme into /boot.
+        - shatteredvales-grub-theme.service
     user:
       enabled:
         # Nudges people to restart when an OS update has waited 3+ days.

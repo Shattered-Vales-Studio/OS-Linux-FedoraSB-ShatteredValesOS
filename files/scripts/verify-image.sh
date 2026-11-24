@@ -96,6 +96,12 @@ readonly REQUIRED_PATHS=(
     /usr/share/shatteredvales/lockscreen-header.png
     /usr/share/shatteredvales/avatar.png
     /usr/share/shatteredvales/avatar-admin.png
+    /usr/share/shatteredvales/grub-theme/theme.txt
+    /usr/share/shatteredvales/grub-theme/theme.cfg
+    /usr/share/shatteredvales/grub-theme/logo.png
+    /usr/share/shatteredvales/grub-theme/lato-regular-28.pf2
+    /usr/libexec/shatteredvales/grub-theme.sh
+    /usr/lib/systemd/system/shatteredvales-grub-theme.service
     /etc/dconf/db/local.d/20-shatteredvales-app-folders
     /usr/share/icons/hicolor/scalable/apps/shatteredvales-new-project.svg
     /usr/share/icons/hicolor/scalable/apps/shatteredvales-github-setup.svg
