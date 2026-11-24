@@ -2,7 +2,7 @@
 # Developer tooling for the studio's service lines: games, VR/AR,
 # Android/WearOS, web and desktop apps. Kept separate from packages.yml so
 # the system layer stays easy to read. Tools that update themselves (rustup,
-# JetBrains Toolbox) are installed per user by first-login.sh instead.
+# JetBrains Toolbox) are installed per user by first-login.d/50-studio.sh instead.
 modules:
   - type: dnf
     install:

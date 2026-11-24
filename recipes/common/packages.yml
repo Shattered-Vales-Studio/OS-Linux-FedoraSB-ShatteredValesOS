@@ -1,22 +1,20 @@
 ---
-# System-level software layered into the image. Anything here updates with
-# the image itself, so it must not be a tool that self-updates in place.
+# Studio packages layered over Core's (Tailscale, Thunderbird, the dock
+# extensions and the support tools come from Core). Anything here updates
+# with the image itself, so it must not be a tool that self-updates in place.
 modules:
   - type: dnf
     repos:
       files:
         - https://download.docker.com/linux/fedora/docker-ce.repo
-        - https://pkgs.tailscale.com/stable/fedora/tailscale.repo
         # Community repackage of Anthropic's official Linux .deb; Anthropic
         # only publishes an apt repository for the Linux beta.
         - https://pkg.claude-desktop-debian.dev/rpm/claude-desktop-unofficial.repo
     # Unity Hub installs into /opt. BlueBuild (CLI 0.9.23+) relocates /opt
     # payloads into /usr/lib/opt for every module automatically, so no
-    # optfix entry is needed; verify-image.sh checks the result.
+    # optfix entry is needed; the release gate checks the result.
     install:
       packages:
-        # Networking and remote access
-        - tailscale
         # Container runtime (Docker Engine is free; Docker Desktop is not)
         - docker-ce
         - docker-ce-cli
@@ -31,18 +29,5 @@ modules:
         - git-lfs
         - code
         - unityhub
-        # Email and calendar. Layered rather than a Flatpak so it is present
-        # offline from the very first boot and covered by the release gate.
-        - thunderbird
         # Claude Desktop (Claude Code CLI is installed per user at first login)
         - claude-desktop-unofficial
-        # Desktop layout: native Fedora packages track the shipped GNOME
-        # version, so they break far less often than extensions.gnome.org builds
-        - gnome-shell-extension-dash-to-dock
-        - gnome-shell-extension-appindicator
-        # Used by sv-gpu-image and the first-login script
-        - jq
-        # `fastfetch` system summary with the studio logo
-        - fastfetch
-        - pciutils
-        - libnotify

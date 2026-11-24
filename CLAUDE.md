@@ -1,80 +1,65 @@
-# CLAUDE.md — Shattered Vales OS
+# CLAUDE.md — Shattered Vales OS Studio Edition
 
-You are working on the Shattered Vales Studio workstation OS: a custom Fedora
-Atomic (Silverblue) image built with BlueBuild, published to GHCR, and
-installed on studio machines. Read this whole file before making changes.
+You are working on Shattered Vales OS **Studio Edition**: the studio's
+workstation OS, a custom Fedora Atomic (Silverblue) image built with
+BlueBuild, published to GHCR as `shatteredvales-os(-nvidia)` and installed
+on studio machines. It is built on **Core Edition**
+(`Shattered-Vales-Studio/OS-Linux-FedoraSB-ShatteredValesOS_CoreEdition`),
+which carries everything the editions share; read Core's CLAUDE.md too.
+Read this whole file before making changes.
 
 ## How the system works
 
+- Both recipes use Core's promoted image (`shatteredvales-os-core(-nvidia)`,
+  `image-version: latest`) as their base and only add or replace. Core's
+  changes and Fedora releases reach Studio at its next build after Core is
+  promoted. **Anything that every edition should have belongs in Core**,
+  not here; this repository holds only what is Studio-specific: developer
+  tooling, Docker, Unity, Claude, the studio's Flatpaks, the `sv-*` tools,
+  Git defaults, app folders and the screen-lock policy.
 - `recipes/recipe-base.yml` and `recipes/recipe-nvidia.yml` differ **only** in
-  `name` and `base-image`. Every other change goes in `recipes/common/*.yml`
-  so the two images can never drift.
-- `files/system/` is copied to `/` in the image. `files/scripts/` holds
-  build-time scripts run by `type: script` modules.
-- `branding/` is the single source for colors, fonts and artwork. Every value
-  mirrors a token in the website's `assets/css/variables.css`. The gold-foil
-  gradient is used only in rendered artwork; GNOME Shell text and controls use
-  the flat accent so every pairing stays at WCAG AAA. Check contrast for any
-  new color pairing before using it.
-  `just branding` renders PNGs into `files/system`. Never hand-edit those
-  generated files; change `branding/` and re-render.
-- Brand values reach the image through `/usr/share/shatteredvales/brand.env`
-  (a copy made by the renderer). Templates use `@BRAND_*@` placeholders that
-  build scripts substitute.
+  `name`, `description` and `base-image`. Every other change goes in
+  `recipes/common/*.yml` so the two images can never drift.
+- `files/system/` is copied over Core's tree (first, so the repo files in
+  `/etc/yum.repos.d` exist before the package steps). `files/scripts/` holds
+  Studio's build-time scripts. Studio extends Core through drop-ins rather
+  than copies of Core's files:
+  - desktop defaults: `etc/dconf/db/local.d/50-shatteredvales-studio`
+    (overrides Core's `10-…`, the later name wins), plus
+    `20-shatteredvales-app-folders` and `locks/`;
+  - per-user setup: `usr/libexec/shatteredvales/first-login.d/50-studio.sh`
+    (registers `STEPS` with Core's framework);
+  - support checks: `usr/libexec/shatteredvales/sv-doctor.d/50-studio.sh`
+    (registers `EDITION_CHECKS`);
+  - release gate: `usr/share/shatteredvales/verify.d/studio.list` and
+    `usr/libexec/shatteredvales/verify.d/*.sh`.
+  Firefox's policy, `mimeapps.list`, Chromium's policies and
+  `artcraft-apps.list` are whole files that replace Core's.
+- Studio's Flatpaks are a second `default-flatpaks` configuration that
+  BlueBuild appends to Core's; list only apps Core does not install.
+- The recipes re-run Core's build steps from the image
+  (`/usr/libexec/shatteredvales/build/apply-branding.sh`, then signing and
+  `verify-image.sh`), so Studio's brand.env, artwork and dconf files apply.
+- `branding/` holds Studio's `brand.env` (Core's with Studio's edition
+  block) and `icons/*.glyph` for the studio launchers. The lock screen and
+  boot splash show the company name, "Shattered Vales / Studio Inc.", in
+  foil (`BRAND_NAME_LINE2_STYLE="foil"`); "Studio Edition" appears in the
+  edition gold wherever "Shattered Vales OS" does (Settings > About, login
+  screen, boot menu, banners, os-release). `just branding` renders with
+  Core's renderer, fonts and logo, writing only the edition-specific
+  artwork into `files/system`. Never hand-edit those generated files.
+  Check contrast for any new colour pairing before using it (AAA 7:1).
+- Moving a Silverblue machine onto Studio uses Core's
+  `sv-migrate.sh --edition studio`.
 - USB installers live in the public `Shattered-Vales-Studio/OS-Installer`
   repo. Never put real secrets (admin hashes, Tailscale or other keys) in
   any repository.
-
-## Bootstrap tasks (do these first, in order, and report back)
-
-The initial scaffold was written without access to a build environment.
-Treat everything below as unverified until you have checked it.
-
-1. **Verify module schemas.** Fetch the current BlueBuild docs
-   (https://blue-build.org/reference/modules/) and confirm the syntax used for
-   `dnf` (including `repos.files`), `default-flatpaks`,
-   `gnome-extensions`, `fonts`, `files`, `script`, `systemd` and `signing`.
-   Fix any mismatch. Run `just validate`.
-2. **Verify base images.** Confirm
-   `ghcr.io/blue-build/base-images/fedora-silverblue` and
-   `ghcr.io/blue-build/base-images/fedora-silverblue-nvidia-open` publish a tag
-   for the current stable Fedora. Set `image-version` in both recipes to that
-   version. (Universal Blue retired its NVIDIA Silverblue images in 2025; do
-   not switch back to `ghcr.io/ublue-os/*-nvidia*`.)
-3. **Extract branding from https://shatteredvales.studio.** Download the
-   site's HTML and CSS with curl. Fill every `VERIFY` value in
-   `branding/brand.env`: background, surface, accent and text colors, the
-   font families, and the closest GNOME accent name. Update the font list in
-   `recipes/common/desktop.yml` to match. Download the logo into
-   `branding/source/logo.svg`, create a single-color white
-   `branding/source/logo-symbolic.svg`, and download the font files from
-   Google Fonts into `branding/source/fonts/`. Ask the user if the logo is
-   only available as a raster image or the wordmark differs from
-   `BRAND_NAME_LINE1/2`.
-4. **Render branding:** `just branding`. Show the user the lock screen header,
-   wallpaper and boot watermark PNGs for approval before going further.
-5. **Verify third-party sources** used at build time still resolve:
-   the Docker, Tailscale, VS Code, Unity Hub and claude-desktop-unofficial
-   repos; the `storytold/craft-launcher` release asset naming; the Bitwarden
-   CLI download URL. Check that the ArtCraft RPM and Unity Hub install paths
-   are handled (both may install into `/opt`).
-6. **Verify GNOME settings keys** against the extension versions for the
-   chosen Fedora release: the Logo Menu schema path and key names, and Just
-   Perfection's `clock-menu-position` values. Adjust
-   `files/system/etc/dconf/db/local.d/10-shatteredvales-desktop`.
-7. **Build and test locally:** `just build` then `just test`. On the user's
-   Apple Silicon Mac this runs under OrbStack with amd64 emulation and is
-   slow; that is expected.
-8. **Signing:** walk the user through `just keys`, committing `cosign.pub`,
-   and adding `SIGNING_SECRET` in the GitHub repo settings.
-9. **First CI build:** push and watch both matrix jobs. Fix failures from the
-   logs; do not disable `verify-image.sh` to get a green build.
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `just branding` | Render artwork from `branding/` |
+| `just branding` | Render Studio's artwork with Core's renderer (`CORE_REF=<branch>` optional) |
 | `just validate` | Schema-check recipes |
 | `just build [base\|nvidia]` | Build an image locally (linux/amd64) |
 | `just test [base\|nvidia]` | Smoke-test a local build |
@@ -97,22 +82,22 @@ Treat everything below as unverified until you have checked it.
 
 ## Rules
 
-- Keep the two recipes identical apart from `name` and `base-image`.
+- Keep the two recipes identical apart from `name`, `description` and
+  `base-image`.
 - Never bake self-updating tools (Claude Code, rustup-style installers) into
   `/usr`; it is read-only on workstations. Per-user tools go in
-  `files/system/usr/libexec/shatteredvales/first-login.sh` as a new
-  versioned step (`run_step <name>-v1 <function>`). Bump the suffix to force
-  a step to run again for everyone.
+  `first-login.d/50-studio.sh` as a new versioned step
+  (`STEPS+=("<name>-v1 <function>")`). Bump the suffix to force a step to
+  run again for everyone.
 - Packages that install into `/opt` are relocated to `/usr/lib/opt` by the
   BlueBuild CLI (v0.9.23+) for every module, including scripts. dnf `optfix`
   is deprecated and does nothing; do not add it. Add the relocated payload
-  to `REQUIRED_PATHS` in `verify-image.sh` so a regression fails the build.
-- `verify-image.sh` is the release gate. When adding software, add it to
-  `REQUIRED_RPMS` or `REQUIRED_PATHS` there.
-- GNOME Shell CSS selectors and extension settings change between GNOME
-  releases. On every Fedora major bump, re-check
-  `files/system/usr/share/shatteredvales/theme/shell-overrides.css.in` and
-  the dconf extension keys, and test on hardware before merging.
+  as a `path` rule in `verify.d/studio.list` so a regression fails the build.
+- The release gate is Core's `verify-image.sh`. When adding Studio software
+  or files, add an `rpm` or `path` rule to `verify.d/studio.list`.
+- GNOME's settings and extension keys can change between releases. When Core
+  moves to a new Fedora release, re-check Studio's dconf keys and app
+  folders on Core's `:testing` before Core is promoted.
 - Never commit `cosign.key`, `secrets.env`, password hashes or Tailscale keys.
 - Builds from `main` publish only `:testing` (`alt-tags` in both recipes).
   `:latest` moves only through `.github/workflows/promote.yml`, which

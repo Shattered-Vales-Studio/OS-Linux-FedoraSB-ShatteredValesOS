@@ -1,15 +1,24 @@
-# Shattered Vales OS
+# Shattered Vales OS Studio Edition
 
 The Shattered Vales Studio workstation image: Fedora Silverblue with the
 studio's tools, branding and macOS-style desktop built in. Built nightly by
 GitHub Actions with [BlueBuild](https://blue-build.org) and signed with cosign.
+
+Studio Edition is built on
+[Shattered Vales OS Core Edition](https://github.com/Shattered-Vales-Studio/OS-Linux-FedoraSB-ShatteredValesOS_CoreEdition),
+which provides the apps, look, updates and support tools every edition
+shares; this repository adds the developer tooling, Docker, Unity, Claude,
+the studio's apps and tools, and Studio's branding. The lock screen and boot
+splash show the company name; Settings > About, the login screen and the
+boot menu show "Shattered Vales OS Studio Edition".
 
 | Image | For |
 |---|---|
 | `ghcr.io/shattered-vales-studio/shatteredvales-os` | AMD / Intel graphics |
 | `ghcr.io/shattered-vales-studio/shatteredvales-os-nvidia` | NVIDIA (RTX 20xx / GTX 16xx and newer) |
 
-Both are built on [BlueBuild's base images](https://github.com/blue-build/base-images)
+Both are built on Core Edition's matching image, which starts from
+[BlueBuild's base images](https://github.com/blue-build/base-images)
 (Fedora Silverblue 45 with codecs; the NVIDIA one adds prebuilt open-kernel
 drivers). Verify a pulled image with the committed key:
 
@@ -41,12 +50,12 @@ No reinstall needed: accounts, files, settings and Flatpak apps all stay.
 On the machine, in a terminal:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/Shattered-Vales-Studio/OS-Linux-FedoraSB-ShatteredValesOS/main/sv-migrate.sh
-bash sv-migrate.sh
+curl -fsSLO https://raw.githubusercontent.com/Shattered-Vales-Studio/OS-Linux-FedoraSB-ShatteredValesOS_CoreEdition/main/sv-migrate.sh
+bash sv-migrate.sh --edition studio
 ```
 
-(`wget https://raw.githubusercontent.com/Shattered-Vales-Studio/OS-Linux-FedoraSB-ShatteredValesOS/main/sv-migrate.sh`
-works too.) The script checks the machine, picks the NVIDIA or standard
+(`wget` with the same address works too; the script lives in Core Edition
+and moves a machine onto any edition.) The script checks the machine, picks the NVIDIA or standard
 image from the hardware, removes packages layered with `rpm-ostree install`
 that would clash with the image (Node.js, RPM Fusion's NVIDIA driver,
 `kernel-devel`, Fedora's Docker packages), prints the plan, and only then
@@ -213,17 +222,19 @@ first (administrator) account; nothing on the stick is tied to the studio.
 ## Keeping up with Fedora
 
 - **Updates within a release** are automatic: nightly builds start from
-  BlueBuild's base images, which pick up Fedora's updates daily, and the
-  weekly promotion moves them to `:latest`.
-- **New Fedora releases** (every April and October): the *fedora-release*
-  workflow checks every Monday. When Fedora N+1 is released and the base
-  images publish it, it pushes a `fedora-<N+1>` branch with the version
-  bumps and opens an issue with the pull request link and the hardware
-  checklist. Nothing moves to a new release without someone testing it.
+  Core Edition's promoted image, which picks up Fedora's updates daily, and
+  the weekly promotion moves them to `:latest`.
+- **Changes from Core** (shared apps, fixes, branding) reach Studio after
+  Core's own canary week: Core's promotion, then Studio's next nightly build
+  puts them on Studio's `:testing`, and Studio's promotion on `:latest`.
+- **New Fedora releases** (every April and October) start in Core Edition,
+  which tests and promotes them first; Studio follows automatically at its
+  next build after that. Re-check Studio's dconf keys and app folders on
+  Core's `:testing` before Core is promoted.
 - **GitHub Actions** used by the workflows are kept current by Dependabot
   (one grouped pull request a week when there is something to update).
 
 ## Developing
 
-See `CLAUDE.md` for the full workflow. In short: `just branding`, `just build`,
-`just test`.
+See `CLAUDE.md` for the full workflow. In short: `just branding` (renders
+Studio's artwork with Core Edition's renderer), `just build`, `just test`.

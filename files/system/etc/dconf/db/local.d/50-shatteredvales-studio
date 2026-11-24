@@ -1,0 +1,36 @@
+# Studio Edition desktop defaults, layered over Core's
+# 10-shatteredvales-desktop (dconf uses the value from the file that sorts
+# last). These are defaults, not locks, except the screen-lock keys locked
+# in locks/10-shatteredvales-screenlock.
+
+[org/gnome/shell]
+# Every RPM-provided entry here is also checked by the release gate
+# (verify.d/core.list and studio.list), so an upstream rename fails the
+# build instead of leaving a blank dock slot. Bitwarden is a Flatpak
+# installed on first boot and cannot be checked.
+favorite-apps=['org.gnome.Nautilus.desktop', 'org.mozilla.firefox.desktop', 'net.thunderbird.Thunderbird.desktop', 'com.microsoft.VSCode.desktop', 'unityhub.desktop', 'claude-desktop-unofficial.desktop', 'org.gnome.Ptyxis.desktop', 'com.bitwarden.desktop.desktop', 'org.gnome.Settings.desktop']
+
+[org/gnome/desktop/screensaver]
+# Studio policy: the screen locks as soon as it blanks. Locked in
+# locks/10-shatteredvales-screenlock so it cannot be turned off.
+lock-enabled=true
+lock-delay=uint32 0
+
+[org/gnome/desktop/session]
+# Blank (and therefore lock) after 30 minutes idle. Locked as above.
+idle-delay=uint32 1800
+
+[org/gnome/settings-daemon/plugins/power]
+# Never suspend on mains power: overnight builds, renders and remote access
+# (SSH, Tailscale, Remmina) must keep running. Laptops on battery keep
+# GNOME's default and still suspend.
+sleep-inactive-ac-type='nothing'
+
+[org/gnome/shell/extensions/Logo-menu]
+# Logo Menu defaults to the Extensions app; Studio ships Extension Manager.
+menu-button-extensions-app='com.mattjakeman.ExtensionManager.desktop'
+
+[org/gnome/shell/extensions/just-perfection]
+# Studio opens on GNOME's Activities overview, its long-standing behaviour,
+# rather than Core's desktop (0 = desktop, 1 = overview).
+startup-status=1
