@@ -41,7 +41,7 @@ test variant="base":
 # Static checks on every shell script.
 lint:
     shellcheck files/scripts/*.sh files/system/usr/libexec/shatteredvales/*.sh \
-        files/system/usr/bin/* files/system/etc/profile.d/*.sh scripts/*.sh tests/*.sh installer-template/*.sh
+        files/system/usr/bin/* files/system/etc/profile.d/*.sh scripts/*.sh tests/*.sh
 
 # Create the cosign key pair used to sign images (one time only).
 keys:

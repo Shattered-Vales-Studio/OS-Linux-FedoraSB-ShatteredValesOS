@@ -14,7 +14,7 @@ set -euo pipefail
 
 readonly REQUIRED_RPMS=(
     tailscale docker-ce golang git git-lfs nano firefox thunderbird code unityhub
-    claude-desktop-unofficial openssh-server
+    claude-desktop-unofficial openssh-server fastfetch
     gnome-shell-extension-dash-to-dock gnome-shell-extension-appindicator
     subversion p4-cli gcc gcc-c++ cmake ninja-build clang gdb
     renderdoc vulkan-tools vulkan-validation-layers mangohud gamemode
@@ -26,6 +26,13 @@ readonly REQUIRED_RPMS=(
 )
 
 readonly REQUIRED_PATHS=(
+    # Terminal colours, system summary logo, sign-in banners and homepage.
+    /usr/share/shatteredvales/ptyxis/ShatteredVales.palette
+    /usr/share/shatteredvales/fastfetch/logo.txt
+    /etc/xdg/fastfetch/config.jsonc
+    /etc/issue.d/50-shatteredvales.issue
+    /usr/lib/motd.d/50-shatteredvales
+    /etc/chromium/policies/recommended/shatteredvales-homepage.json
     # Wallpapers offered in Settings > Appearance.
     /usr/share/backgrounds/shatteredvales/space.jpg
     /usr/share/backgrounds/shatteredvales/earth.jpg
