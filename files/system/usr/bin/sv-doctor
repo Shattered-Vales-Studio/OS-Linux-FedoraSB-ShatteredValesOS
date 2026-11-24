@@ -158,7 +158,7 @@ check_group() {
 }
 
 # check_github
-#   Reports Git identity, GitHub CLI sign-in and SSH access.
+#   Reports Git identity, GitHub CLI sign-in, SSH access and commit signing.
 #   Arguments: none
 #   Returns: 0 always
 check_github() {
@@ -178,6 +178,12 @@ check_github() {
         report PASS "GitHub SSH" "Key accepted by GitHub"
     else
         report WARN "GitHub SSH" "SSH key not set up or not accepted; run GitHub Setup"
+    fi
+    if [[ "$(git config --global commit.gpgsign || true)" == true \
+          && "$(git config --global gpg.format || true)" == ssh ]]; then
+        report PASS "Commit signing" "Commits are signed (Verified on GitHub)"
+    else
+        report WARN "Commit signing" "Commits are not signed; run: sv-github signing"
     fi
 }
 

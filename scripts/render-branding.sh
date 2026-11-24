@@ -69,19 +69,51 @@ render_inside() {
     #   Writes a copy of the logo whose fill is the foil gradient. The
     #   gradient spans the full 0..viewBox width, matching the site, where
     #   the gradient covers the logo element's whole box through a mask.
-    #   Arguments: $1 output path
+    #   Arguments: $1 output path, $2 optional space-separated stop colours
+    #              (default: the gold BRAND_FOIL_STOPS)
     #   Returns: 0 on success
     foil_svg() {
-        local width offsets="" i n=${#stops[@]}
+        local width offsets="" i n
+        local -a use=("${stops[@]}")
+        if [[ -n "${2:-}" ]]; then
+            read -r -a use <<<"$2"
+        fi
+        n=${#use[@]}
         width="$(grep -oE 'viewBox="[^"]+"' "${src}/logo.svg" | awk '{print $3}')"
         for (( i = 0; i < n; i++ )); do
-            offsets+="<stop offset=\"$(( i * 100 / (n - 1) ))%\" stop-color=\"${stops[i]}\"/>"
+            offsets+="<stop offset=\"$(( i * 100 / (n - 1) ))%\" stop-color=\"${use[i]}\"/>"
         done
         sed -e '/^<!--/d' \
             -e "s|<g>|<defs><linearGradient id=\"foil\" gradientUnits=\"userSpaceOnUse\" x1=\"0\" y1=\"0\" x2=\"${width}\" y2=\"0\">${offsets}</linearGradient></defs><g>|" \
             -e "s|fill=\"${BRAND_ACCENT}\"|fill=\"url(#foil)\"|gI" \
             "${src}/logo.svg" > "$1"
         grep -q 'url(#foil)' "$1" || { echo "logo.svg fill is not ${BRAND_ACCENT}" >&2; return 1; }
+    }
+
+    # tile_icon
+    #   Writes a scalable app icon: a rounded tile filled with the site's
+    #   page gradient and a thin gold edge, with a line glyph stroked in the
+    #   foil gradient, on a 128x128 canvas.
+    #   Arguments: $1 icon name, $2 SVG elements for the glyph (unstyled;
+    #              stroke and fill come from the enclosing group)
+    #   Returns: 0 on success
+    tile_icon() {
+        local offsets="" i n=${#stops[@]}
+        for (( i = 0; i < n; i++ )); do
+            offsets+="<stop offset=\"$(( i * 100 / (n - 1) ))%\" stop-color=\"${stops[i]}\"/>"
+        done
+        cat > "${out}/usr/share/icons/hicolor/scalable/apps/$1.svg" <<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="foil" gradientUnits="userSpaceOnUse" x1="24" y1="24" x2="104" y2="104">${offsets}</linearGradient>
+    <radialGradient id="page" cx="64" cy="64" r="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="${BRAND_BG_GLOW}"/><stop offset="100%" stop-color="${BRAND_BG}"/>
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#page)" stroke="${BRAND_ACCENT}" stroke-opacity="0.45" stroke-width="2"/>
+  <g fill="none" stroke="url(#foil)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">$2</g>
+</svg>
+SVG
     }
 
     # foilify
@@ -134,6 +166,8 @@ render_inside() {
              "${out}/usr/share/icons/hicolor/scalable/apps"
 
     foil_svg "${tmp}/logo-foil.svg"
+    foil_svg "${tmp}/logo-admin.svg" "${BRAND_ADMIN_FOIL_STOPS}"
+    rsvg-convert -h 1024 "${tmp}/logo-admin.svg" -o "${tmp}/logo-admin-1024.png"
     local h
     for h in 1024 512 256 192; do
         rsvg-convert -h "${h}" "${tmp}/logo-foil.svg" -o "${tmp}/logo-${h}.png"
@@ -143,7 +177,7 @@ render_inside() {
     # transparent canvas. GNOME Shell's St toolkit only accepts pixel values
     # for background-position and otherwise centres the image on the clock,
     # so the canvas is exactly the clock's min-height in
-    # shell-overrides.css.in (480x640): centred, its top edge meets the top
+    # shell-overrides.css.in (480x920): centred, its top edge meets the top
     # of the clock and the header sits above the time. Rendered at 2x so it
     # stays sharp on HiDPI displays.
     wordmark 72 "${tmp}/wm-lock.png"
@@ -152,7 +186,7 @@ render_inside() {
         -background none -gravity center -append "${tmp}/lock-raw.png"
     glow "${tmp}/lock-raw.png" "${tmp}/lock-glow.png" 14
     magick "${tmp}/lock-glow.png" -resize 960x440 -background none -gravity center \
-        -extent 960x440 -gravity north -extent 960x1280 \
+        -extent 960x440 -gravity north -extent 960x1840 \
         "${out}/usr/share/shatteredvales/lockscreen-header.png"
 
     # Boot splash watermark. Plymouth draws it 1:1 on the framebuffer, so
@@ -185,13 +219,19 @@ render_inside() {
         -background none -gravity center +append -resize x96 \
         "${out}/usr/share/pixmaps/shatteredvales-gdm-logo.png"
 
-    # Default account picture: the logo on the site's page gradient. GNOME
-    # crops account pictures to a circle, so the mark stays inside the
-    # inscribed circle with room to spare.
-    magick -size 512x512 -define gradient:radii=256,256 \
-        "radial-gradient:${BRAND_BG_GLOW}-${BRAND_BG}" \
-        \( "${tmp}/logo-1024.png" -trim +repage -resize 300x300 \) \
-        -gravity center -composite "${out}/usr/share/shatteredvales/avatar.png"
+    # Default account pictures: the logo on the site's page gradient, gold
+    # for everyday accounts and red for administrators, so the user list
+    # shows at a glance which accounts can change the computer. GNOME crops
+    # account pictures to a circle, so the mark stays inside the inscribed
+    # circle with room to spare.
+    local avatar logo
+    for avatar in avatar:logo-1024.png avatar-admin:logo-admin-1024.png; do
+        logo="${avatar#*:}"
+        magick -size 512x512 -define gradient:radii=256,256 \
+            "radial-gradient:${BRAND_BG_GLOW}-${BRAND_BG}" \
+            \( "${tmp}/${logo}" -trim +repage -resize 300x300 \) \
+            -gravity center -composite "${out}/usr/share/shatteredvales/${avatar%%:*}.png"
+    done
 
     cp "${src}/logo-symbolic.svg" "${out}/usr/share/pixmaps/shatteredvales-logo-symbolic.svg"
     cp "${tmp}/logo-foil.svg" "${out}/usr/share/icons/hicolor/scalable/apps/shatteredvales-logo.svg"
@@ -201,6 +241,51 @@ render_inside() {
         rsvg-convert -w "${size}" -h "${size}" -a "${tmp}/logo-foil.svg" \
             -o "${out}/usr/share/icons/hicolor/${size}x${size}/apps/shatteredvales-logo.png"
     done
+
+    # Settings > About logo. Fedora builds GNOME Settings with
+    # -Ddistributor_logo pointing at these two fedora-logos files (light and
+    # dark mode), so it ignores os-release LOGO; replacing the files is the
+    # only way to brand the page. Fedora's name is plain text; its logo
+    # artwork is not reused.
+    #
+    # GtkPicture draws the file at its pixel size and has no way to take a
+    # HiDPI version, so on 125-150% displays GNOME stretches it. To stay
+    # legible when stretched it uses large, slightly thickened lettering, a
+    # widely tracked bold subtitle and a light sharpen after downscaling,
+    # at 400x120 (still inside the About page's column). The subtitle uses
+    # the brand text colour for each mode (AAA on libadwaita's backgrounds).
+    magick -background none -fill white -font "${BRAND_DISPLAY_FONT_FILE}" \
+        -pointsize 96 -kerning 9.6 label:"${BRAND_OS_NAME^^}" -trim +repage \
+        -morphology Dilate Disk:1.5 "${tmp}/about-name-white.png"
+    foilify "${tmp}/about-name-white.png" "${tmp}/about-name.png"
+    magick "${tmp}/logo-256.png" -trim +repage -resize x240 "${tmp}/logo-about.png"
+    local mode colour file
+    for mode in light dark; do
+        if [[ "${mode}" == light ]]; then
+            colour="${BRAND_BG}" file=fedora_logo_med.png
+        else
+            colour="${BRAND_TEXT}" file=fedora_whitelogo_med.png
+        fi
+        magick -background none -fill "${colour}" -font "${BRAND_FONT_BOLD_FILE}" \
+            -pointsize 58 -kerning 11 label:"BASED ON FEDORA" -trim +repage "${tmp}/about-sub-${mode}.png"
+        magick "${tmp}/about-name.png" \( -size 1x26 xc:none \) "${tmp}/about-sub-${mode}.png" \
+            -background none -gravity west -append "${tmp}/about-text-${mode}.png"
+        magick "${tmp}/logo-about.png" \( -size 40x1 xc:none \) "${tmp}/about-text-${mode}.png" \
+            -background none -gravity center +append \
+            -resize 384x108 -unsharp 0x0.6+0.6+0 \
+            -gravity center -extent 400x120 +repage "${out}/usr/share/pixmaps/${file}"
+    done
+
+    # Studio launcher icons: a dark tile in the site's surface colours with
+    # a gold-foil line glyph, so each studio tool is recognisable in the app
+    # grid while matching the logo. Glyphs are generic shapes (a document,
+    # a Git branch, update arrows), never third-party logos.
+    tile_icon "shatteredvales-new-project" \
+        '<path d="M44 30h26l18 18v48a4 4 0 0 1-4 4H44a4 4 0 0 1-4-4V34a4 4 0 0 1 4-4z"/><path d="M70 30v18h18"/><path d="M64 62v26M51 75h26"/>'
+    tile_icon "shatteredvales-github-setup" \
+        '<circle cx="46" cy="38" r="9"/><circle cx="46" cy="92" r="9"/><circle cx="84" cy="52" r="9"/><path d="M46 47v36"/><path d="M84 61c0 16-38 10-38 22"/>'
+    tile_icon "shatteredvales-update" \
+        '<path d="M88 50a28 28 0 0 0-50-6"/><path d="M36 30v14h14"/><path d="M40 78a28 28 0 0 0 50 6"/><path d="M92 98V84H78"/>'
 
     cp branding/brand.env "${out}/usr/share/shatteredvales/brand.env"
     rm -rf "${tmp}"

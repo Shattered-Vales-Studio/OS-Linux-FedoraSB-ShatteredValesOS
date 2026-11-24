@@ -19,7 +19,7 @@ readonly REQUIRED_RPMS=(
     subversion p4-cli gcc gcc-c++ cmake ninja-build clang gdb
     renderdoc vulkan-tools vulkan-validation-layers mangohud gamemode
     android-tools openxr monado dotnet-sdk-10.0
-    nodejs26 nodejs26-npm pnpm chromium gh pipx uv
+    nodejs26 nodejs26-npm pnpm chromium gh pipx uv distrobox
     webkit2gtk4.1-devel gtk3-devel libayatana-appindicator-gtk3-devel
     mingw64-gcc mingw64-gcc-c++ flatpak-builder rpm-build
     virt-manager libvirt-daemon-kvm qemu-kvm
@@ -82,12 +82,46 @@ readonly REQUIRED_PATHS=(
     /usr/share/backgrounds/shatteredvales/wallpaper.png
     /usr/share/shatteredvales/lockscreen-header.png
     /usr/share/shatteredvales/avatar.png
+    /usr/share/shatteredvales/avatar-admin.png
+    /etc/dconf/db/local.d/20-shatteredvales-app-folders
+    /usr/share/icons/hicolor/scalable/apps/shatteredvales-new-project.svg
+    /usr/share/icons/hicolor/scalable/apps/shatteredvales-github-setup.svg
+    /usr/bin/sv-box
+    /etc/firewalld/zones/FedoraWorkstation.xml
+    /etc/shatteredvales/network-shares
+    /usr/share/applications/shatteredvales-update.desktop
+    /usr/share/icons/hicolor/scalable/apps/shatteredvales-update.svg
+    /usr/libexec/shatteredvales/signed-switch.sh
+    /usr/lib/systemd/system/shatteredvales-signed-switch.service
+    /usr/lib/tmpfiles.d/shatteredvales-homebrew.conf
+    /etc/profile.d/shatteredvales-brew.sh
+    /etc/profile.d/shatteredvales-mise.sh
     /etc/dconf/db/local
     /etc/dconf/db/gdm
 )
 
+# check_artcraft_folder
+#   Confirms every app in the ArtCraft install list is also in the ArtCraft
+#   app grid folder, so a newly added Craft app cannot end up loose in the
+#   grid.
+#   Arguments: none
+#   Returns: 0 when the folder lists every app, 1 otherwise
+check_artcraft_folder() {
+    local folders=/etc/dconf/db/local.d/20-shatteredvales-app-folders
+    local list=/usr/share/shatteredvales/artcraft-apps.list
+    local apps id flatpak_id _ status=0
+    apps="$(sed -n '/^\[org\/gnome\/desktop\/app-folders\/folders\/ArtCraft\]/,/^\[/p' "${folders}" | grep '^apps=')"
+    while read -r id flatpak_id _; do
+        [[ -z "${id}" || "${id}" == \#* ]] && continue
+        [[ "${apps}" == *"'${flatpak_id}.desktop'"* ]] \
+            || { echo "ArtCraft folder is missing ${flatpak_id}.desktop"; status=1; }
+    done < "${list}"
+    return "${status}"
+}
+
 # main
-#   Checks required RPMs, paths, the Plymouth theme and bootc lint.
+#   Checks required RPMs, paths, the Plymouth theme, the ArtCraft folder
+#   and bootc lint.
 #   Arguments: none
 #   Returns: 0 when every check passes, 1 otherwise
 main() {
@@ -101,6 +135,7 @@ main() {
     done
     grep -q '^Theme=shatteredvales' /etc/plymouth/plymouthd.conf \
         || { echo "Plymouth theme not set"; failed=1; }
+    check_artcraft_folder || failed=1
 
     bootc container lint || failed=1
 

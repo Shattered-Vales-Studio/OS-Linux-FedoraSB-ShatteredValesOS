@@ -14,6 +14,8 @@
 #   sv-update now        Download the newest image and app updates now,
 #                        then offer to restart.
 #   sv-update rollback   Boot the previous OS version at the next restart.
+#   Add --wait to any of these to keep the window open at the end; the
+#   System Update launcher uses it.
 #
 # Exit codes:
 #   0 on success, 1 on failure, 64 on bad usage.
@@ -125,17 +127,29 @@ offer_restart_rollback() {
 }
 
 # main
-#   Dispatches the subcommand.
-#   Arguments: $1 subcommand (default: status)
+#   Dispatches the subcommand and, with --wait, pauses before the window
+#   closes so a launcher's output can be read.
+#   Arguments: $1 subcommand (default: status), optional --wait
 #   Returns: the subcommand's status, or 64 on bad usage
 main() {
-    case "${1:-status}" in
-        status)   cmd_status ;;
-        now)      cmd_now ;;
-        rollback) cmd_rollback ;;
-        -h|--help|help) sed -n '/^# Usage:/,/^#$/p' "$0" | sed 's/^# \{0,3\}//' ;;
-        *) echo "Usage: sv-update [now|rollback]" >&2; exit 64 ;;
+    local cmd=status wait=0 arg status=0
+    for arg in "$@"; do
+        case "${arg}" in
+            --wait) wait=1 ;;
+            -h|--help|help) sed -n '/^# Usage:/,/^#$/p' "$0" | sed 's/^# \{0,3\}//'; exit 0 ;;
+            status|now|rollback) cmd="${arg}" ;;
+            *) echo "Usage: sv-update [now|rollback] [--wait]" >&2; exit 64 ;;
+        esac
+    done
+    case "${cmd}" in
+        status)   cmd_status || status=$? ;;
+        now)      cmd_now || status=$? ;;
+        rollback) cmd_rollback || status=$? ;;
     esac
+    if (( wait )); then
+        read -r -p $'\nPress Enter to close.' _
+    fi
+    return "${status}"
 }
 
 main "$@"

@@ -98,6 +98,53 @@ step_rustup() {
     notify "Rust installed" "Open a new terminal to use cargo and rustc"
 }
 
+# step_homebrew
+#   Installs Homebrew into /home/linuxbrew/.linuxbrew for the first
+#   administrator who logs in (see usr/lib/tmpfiles.d/
+#   shatteredvales-homebrew.conf). Per user because brew updates itself and
+#   its packages in place. Cloned directly rather than through Homebrew's
+#   install script, which asks for sudo; a full clone because `brew update`
+#   does not support shallow ones. Skipped, and marked done, for everyday
+#   accounts, for accounts in /etc/shatteredvales/homebrew-skip-users (the
+#   installer's IT account) and once another account owns Homebrew.
+#   Returns: 0 when installed or skipped, 1 on download failure
+step_homebrew() {
+    local parent=/home/linuxbrew prefix=/home/linuxbrew/.linuxbrew
+    local skip=/etc/shatteredvales/homebrew-skip-users
+    [[ -x "${prefix}/bin/brew" ]] && return 0
+    is_admin || return 0
+    if [[ -r "${skip}" ]] && grep -qx "${USER}" "${skip}"; then
+        return 0
+    fi
+    if [[ -e "${prefix}" ]]; then
+        [[ -O "${prefix}" ]] || return 0
+    else
+        [[ -w "${parent}" ]] || return 0
+        mkdir "${prefix}" || return 0
+    fi
+    wait_for_network || return 1
+    mkdir -p "${prefix}/bin"
+    if [[ ! -d "${prefix}/Homebrew/.git" ]]; then
+        rm -rf "${prefix}/Homebrew"
+        git clone --quiet https://github.com/Homebrew/brew "${prefix}/Homebrew" || return 1
+    fi
+    ln -sfn ../Homebrew/bin/brew "${prefix}/bin/brew"
+    "${prefix}/bin/brew" update --force --quiet || return 1
+    notify "Homebrew installed" "Open a new terminal to use brew"
+}
+
+# step_mise
+#   Installs mise (per-project versions of Node, Python, Go, .NET and more)
+#   into ~/.local/bin with its official installer. Per user because mise
+#   updates itself (`mise self-update`). Activation lives in
+#   /etc/profile.d/shatteredvales-mise.sh.
+#   Returns: installer exit status
+step_mise() {
+    [[ -x "${HOME}/.local/bin/mise" ]] && return 0
+    wait_for_network || return 1
+    curl -fsSL https://mise.run | MISE_INSTALL_PATH="${HOME}/.local/bin/mise" sh || return 1
+}
+
 # step_jetbrains_toolbox
 #   Downloads JetBrains Toolbox (used to install and update Rider and other
 #   JetBrains IDEs), verifies its published SHA-256 and starts it once. On
@@ -250,23 +297,43 @@ sys.exit(0 if pixels[3] == 0 else 1)
 PY
 }
 
-# step_user_icon
-#   Sets the studio logo as the account picture when the user has none or
-#   only GNOME's generated initials avatar. Pictures the user chose are kept.
-#   AccountsService copies the file, so the user can change it later in
-#   Settings > Users as usual.
+# is_admin
+#   Tells whether this account is an administrator (a member of wheel).
+#   Arguments: none
+#   Returns: 0 for administrators, 1 otherwise
+is_admin() {
+    id -nG | tr ' ' '\n' | grep -qx wheel
+}
+
+# sync_user_icon
+#   Gives the account the studio logo as its picture when it has none, only
+#   GNOME's generated initials avatar, or one of the studio's own defaults:
+#   red for administrators, gold for everyone else, so the login screen
+#   shows which accounts can change the computer. Runs at every login so the
+#   colour follows the account when it is made or unmade an administrator.
+#   Pictures the user chose are never replaced.
+#   Arguments: none
 #   Returns: 0 when the picture is set or kept, 1 if setting it failed
-step_user_icon() {
-    local user_path icon
+sync_user_icon() {
+    local user_path icon default=/usr/share/shatteredvales/avatar.png
+    local admin=/usr/share/shatteredvales/avatar-admin.png picture
     user_path="$(busctl --system call org.freedesktop.Accounts /org/freedesktop/Accounts \
         org.freedesktop.Accounts FindUserById x "$(id -u)" | cut -d'"' -f2)" || return 1
     icon="$(busctl --system get-property org.freedesktop.Accounts "${user_path}" \
         org.freedesktop.Accounts.User IconFile | cut -d'"' -f2)" || return 1
-    if [[ -s "${icon}" ]] && ! is_generated_avatar "${icon}"; then
-        return 0
+    picture="${default}"
+    is_admin && picture="${admin}"
+    # AccountsService stores a copy, so the current picture is compared by
+    # content with the defaults rather than by path.
+    if [[ -s "${icon}" ]]; then
+        cmp -s "${icon}" "${picture}" && return 0
+        if ! cmp -s "${icon}" "${default}" && ! cmp -s "${icon}" "${admin}" \
+            && ! is_generated_avatar "${icon}"; then
+            return 0
+        fi
     fi
     busctl --system call org.freedesktop.Accounts "${user_path}" \
-        org.freedesktop.Accounts.User SetIconFile s /usr/share/shatteredvales/avatar.png
+        org.freedesktop.Accounts.User SetIconFile s "${picture}" >/dev/null
 }
 
 # step_unity_cli
@@ -327,6 +394,35 @@ step_unity_mcp() {
     UNITY_NO_CONSENT_PROMPT=1 "${unity}" mcp configure claude --yes --non-interactive || return 1
 }
 
+# sync_share_bookmarks
+#   Adds the shares listed in /etc/shatteredvales/network-shares to the
+#   Files sidebar. Runs at every login rather than once, so shares an admin
+#   adds later reach existing users. Windows paths (\\server\share) are
+#   converted to smb:// addresses; bookmarks already present are left alone.
+#   Arguments: none
+#   Returns: 0 always
+sync_share_bookmarks() {
+    local list=/etc/shatteredvales/network-shares
+    local bookmarks="${XDG_CONFIG_HOME:-${HOME}/.config}/gtk-3.0/bookmarks"
+    local address name url
+    [[ -r "${list}" ]] || return 0
+    mkdir -p "$(dirname "${bookmarks}")"
+    touch "${bookmarks}"
+    while read -r address name; do
+        [[ -z "${address}" || "${address}" == \#* ]] && continue
+        if [[ "${address}" == \\\\* ]]; then
+            url="smb://$(sed -e 's#^\\\\##' -e 's#\\#/#g' <<<"${address}")"
+        else
+            url="${address}"
+        fi
+        # Compared as a whole first field, since addresses contain dots and
+        # other characters grep would treat as a pattern.
+        awk -v u="${url}" '$1 == u {found = 1} END {exit !found}' "${bookmarks}" && continue
+        echo "${url}${name:+ ${name}}" >> "${bookmarks}"
+        echo "Added share bookmark ${url}"
+    done < "${list}"
+}
+
 # main
 #   Runs every pending per-user setup step and logs to the state directory.
 #   Arguments: none
@@ -343,14 +439,17 @@ main() {
     run_step unity-mcp-v1 step_unity_mcp || failed=1
     run_step npm-prefix-v1 step_npm_prefix || failed=1
     run_step rustup-v1 step_rustup || failed=1
+    run_step homebrew-v1 step_homebrew || failed=1
+    run_step mise-v1 step_mise || failed=1
     run_step jetbrains-toolbox-v1 step_jetbrains_toolbox || failed=1
     run_step source-dir-v1 step_source_dir || failed=1
     run_step github-reminder-v1 step_github_reminder || failed=1
     run_step source-bookmark-v1 step_source_bookmark || failed=1
     run_step file-templates-v1 step_file_templates || failed=1
-    run_step user-icon-v1 step_user_icon || failed=1
     # Last, because it downloads about 1 GB.
     run_step artcraft-apps-v1 step_artcraft_apps || failed=1
+    sync_share_bookmarks
+    sync_user_icon || failed=1
 
     if (( failed )); then
         notify "Workstation setup incomplete" "See ${LOG_FILE}. It will retry at next login."

@@ -8,6 +8,8 @@ modules:
         - sshd.service
         - shatteredvales-groups.service
         - shatteredvales-gpu-check.service
+        # Finishes sv-migrate.sh moves by switching to the signed image.
+        - shatteredvales-signed-switch.service
     user:
       enabled:
         # Nudges people to restart when an OS update has waited 3+ days.

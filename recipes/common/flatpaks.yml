@@ -34,6 +34,9 @@ modules:
           - org.remmina.Remmina
           - com.mattjakeman.ExtensionManager
           - com.github.tchx84.Flatseal
+          # KDE's file manager, for people used to it on Windows shares;
+          # Files remains the default.
+          - org.kde.dolphin
           # Art, audio and engines
           - org.blender.Blender
           - org.kde.krita

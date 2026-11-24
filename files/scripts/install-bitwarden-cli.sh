@@ -31,7 +31,10 @@ trap 'rm -rf "${WORK}"' EXIT
 #   Arguments: none
 #   Returns: non-zero on any failure
 main() {
-    curl -fsSL -o "${WORK}/bw.zip" "${DOWNLOAD_URL}"
+    # The URL redirects to the newest GitHub release asset, which has briefly
+    # returned 404 mid-build; retry rather than fail the whole image.
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 15 \
+        -o "${WORK}/bw.zip" "${DOWNLOAD_URL}"
     # python3 is always present in Fedora Atomic, unlike unzip.
     python3 -m zipfile -e "${WORK}/bw.zip" "${WORK}/out"
     install -m 0755 "${WORK}/out/bw" /usr/bin/bw
