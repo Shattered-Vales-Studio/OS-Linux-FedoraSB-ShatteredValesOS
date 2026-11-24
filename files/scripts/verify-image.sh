@@ -26,6 +26,12 @@ readonly REQUIRED_RPMS=(
 )
 
 readonly REQUIRED_PATHS=(
+    # Wallpapers offered in Settings > Appearance.
+    /usr/share/backgrounds/shatteredvales/space.jpg
+    /usr/share/backgrounds/shatteredvales/earth.jpg
+    /usr/share/backgrounds/shatteredvales/vale.jpg
+    /usr/share/backgrounds/shatteredvales/circuit.jpg
+    /usr/share/gnome-background-properties/shatteredvales.xml
     /usr/bin/unityhub
     /usr/bin/artcraft-launcher
     # p4-cli installs into /opt; this proves BlueBuild relocated it.
